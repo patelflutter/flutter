@@ -26,7 +26,7 @@ class CustomWidget extends StatelessWidget {
             child: Column(
               children: [
                 SizedBox(
-                  height: getMediaQueryHeight(context: context, value: 80),
+                  height: 80,
                   child: Image.asset(
                     imagePath,
                     fit: BoxFit.fill,
@@ -39,7 +39,7 @@ class CustomWidget extends StatelessWidget {
                   text,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Color(0xff5a6065),
                   ),
                 )

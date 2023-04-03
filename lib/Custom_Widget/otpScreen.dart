@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-
 import 'package:homofix/Custom_Widget/responsiveHeigh_Width.dart';
 
 class OtpPageView extends StatefulWidget {
@@ -24,7 +23,6 @@ class _OtpPageViewState extends State<OtpPageView> {
   List<TextEditingController> _textControllers =
       List.generate(4, (index) => TextEditingController());
   String _expectedOTP = '1234';
-  Color _defaultBorderColor = Colors.grey;
   @override
   void initState() {
     super.initState();
@@ -32,8 +30,6 @@ class _OtpPageViewState extends State<OtpPageView> {
     print(otp);
   }
 
-  @override
-  TextEditingController _otpController = TextEditingController();
   @override
   void dispose() {
     for (var i = 0; i < 4; i++) {

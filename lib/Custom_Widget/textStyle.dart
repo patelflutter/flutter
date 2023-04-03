@@ -12,3 +12,9 @@ TextStyle customSmallTextStyle = const TextStyle(
   fontWeight: FontWeight.bold,
   color: Color(0xff1b213c),
 );
+TextStyle customSmallTextStyleNoBold = const TextStyle(
+  //fontFamily: 'Roboto',
+  fontSize: 14,
+
+  color: Color(0xff1b213c),
+);

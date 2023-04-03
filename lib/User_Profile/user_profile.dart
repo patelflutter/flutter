@@ -6,11 +6,12 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import '../Custom_Widget/custom_mediamButton.dart';
-import '../Custom_Widget/otpScreen.dart';
 import '../Custom_Widget/responsiveHeigh_Width.dart';
 import 'package:dotted_border/dotted_border.dart';
 import "package:http/http.dart" as http;
-import 'package:path/path.dart';
+
+import '../Custom_Widget/textStyle.dart';
+import '../LoginPage/Otp/otpView.dart';
 
 class UserPeofileVew extends StatefulWidget {
   final String expertId;
@@ -33,6 +34,8 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
   File? _image;
   bool isLoading = true;
   File? pickedImage;
+  String _userId = '';
+  String _username = '';
   void imagePickerOption(BuildContext context) {
     showDialog(
       context: context,
@@ -157,12 +160,9 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
   }
 
   Future<void> post() async {
-    setState(() {
-      isLoading = true;
-    });
-    setState(() {
-      state = 1;
-    });
+    // setState(() {
+    //   isLoading = true;
+    // });
 
     if (pickedImage != null) {
       await uploadImage();
@@ -175,57 +175,54 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
 
     final response = await http.patch(
       Uri.parse(
-          "https://armaan.pythonanywhere.com/api/Expert/${widget.expertId}"),
+          "https://armaan.pythonanywhere.com/api/Expert/${widget.expertId}/"),
       body: jsonEncode(activityData),
       headers: {
         "content-type": "application/json",
       },
     );
+
     try {
       setState(() {
         isLoading = false;
       });
       print("ok");
       Fluttertoast.showToast(
-          msg: "Form Update Successfully",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.TOP,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-          fontSize: 16.0);
-
-      setState(() {
-        state = 2;
-      });
+        msg: "Form Update Successfully",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.TOP,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
     } catch (e) {
       setState(() {
         isLoading = false;
       });
       print(e);
       Fluttertoast.showToast(
-          msg: "Form Update Error",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.TOP,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0);
+        msg: "Form Update Error",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.TOP,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
     }
   }
 
   Future<void> uploadImage() async {
-    setState(() {
-      isLoading = true;
-    });
+    // setState(() {
+    //   isLoading = true;
+    // });
+
     try {
-      var stream = http.ByteStream(pickedImage!.openRead());
-      var length = await pickedImage!.length();
       var uri = Uri.parse(
           'http://armaan.pythonanywhere.com/api/Expert/${widget.expertId}/');
       var headers = {
         'Content-Type': 'multipart/form-data',
-        'Authorization': 'Bearer '
       };
       FormData formData = FormData.fromMap({
         'profile_pic': await MultipartFile.fromFile(
@@ -239,15 +236,13 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
 
       var response = await dio.patch(uri.toString(), data: formData);
 
+      // setState(() {
+      //   isLoading = false;
+      // });
+
       if (response.statusCode == 200) {
-        setState(() {
-          isLoading = false;
-        });
         print("Image Uploaded Successfully");
       } else {
-        setState(() {
-          isLoading = false;
-        });
         print("Failed to upload image");
       }
     } catch (e) {
@@ -260,24 +255,34 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
     super.initState();
     _fatherController = TextEditingController();
     _mobileController = TextEditingController();
+
     fetchData();
   }
 
+  // @override
+  // void dispose() {
+  //   _mobileFocusNode.dispose();
+  //   _fatherController.dispose();
+  //   _mobileController.dispose();
+  //   super.dispose();
+  // }
+
+  final _mobileFocusNode = FocusNode();
+  bool _isButtonVisible = true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Color(0xff6956F0),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        elevation: 0,
-        backgroundColor: Colors.white,
         title: Text(
           widget.expertname.toUpperCase(),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: Colors.black),
+          style: TextStyle(color: Colors.white),
         ),
       ),
       body: isLoading
@@ -294,60 +299,39 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                         child: Stack(
                           children: [
                             Container(
-                                margin: EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Color.fromARGB(255, 223, 222, 222)
-                                          .withOpacity(0.5),
-                                      spreadRadius: 2,
-
-                                      offset: Offset(
-                                          0, 1), // changes position of shadow
-                                    ),
-                                  ],
-                                  border:
-                                      Border.all(color: Colors.white, width: 5),
-                                  borderRadius: const BorderRadius.all(
-                                    Radius.circular(100),
-                                  ),
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Color(0xff6956F0),
+                                  width: 2,
                                 ),
-                                child: ClipOval(
-                                  child: pickedImage != null
-                                      ? Image.file(
-                                          pickedImage!,
-                                          width: getMediaQueryWidth(
-                                              context: context, value: 130),
-                                          height: getMediaQueryHeight(
-                                              context: context, value: 155),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : expertData['profile_pic'] != null
-                                          ? FadeInImage.assetNetwork(
-                                              placeholder:
-                                                  'assets/download.jpg',
-                                              image: expertData['profile_pic'],
-                                              width: getMediaQueryWidth(
-                                                  context: context, value: 130),
-                                              height: getMediaQueryHeight(
-                                                  context: context, value: 155),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : CircleAvatar(
-                                              child: Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  color: Colors.black,
-                                                ),
-                                              ),
-                                            ),
-                                )),
+                              ),
+                              child: ClipOval(
+                                child: pickedImage != null
+                                    ? Image.file(
+                                        pickedImage!,
+                                        fit: BoxFit.fill,
+                                      )
+                                    : expertData['profile_pic'] != null
+                                        ? Image.network(
+                                            expertData['profile_pic'],
+                                            fit: BoxFit.fill,
+                                          )
+                                        : Center(
+                                            child: Icon(
+                                            FontAwesomeIcons.user,
+                                            size: 80,
+                                            color: Color(0xFFF3F2F2),
+                                          )),
+                              ),
+                            ),
                             Positioned(
-                              bottom: 15,
-                              right: 10,
+                              bottom: 5,
+                              right: 0,
                               child: CircleAvatar(
-                                backgroundColor:
-                                    Color.fromARGB(255, 228, 226, 226),
+                                backgroundColor: Color(0xff6956F0),
                                 child: IconButton(
                                   onPressed: () {
                                     showDialog(
@@ -408,8 +392,8 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                     );
                                   },
                                   icon: const Icon(
-                                    FontAwesomeIcons.camera,
-                                    color: Color(0xff1b213c),
+                                    Icons.camera_alt_outlined,
+                                    color: Colors.white,
                                     size: 20,
                                   ),
                                 ),
@@ -455,7 +439,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                     //     fontSize: 14,
                                     //     fontWeight: FontWeight.normal),
                                     border: InputBorder.none,
-                                    hintText: "raviranjan510",
+                                    hintText: "name",
                                   )
                                   //  label: Text("raviranjan510")),
                                   ),
@@ -617,10 +601,23 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                     maxLength: 10,
                                     validator: (value) {
                                       if (value!.isEmpty) {
-                                        return 'Please enter !0th Digit Number';
+                                        return 'Please enter Mobile  Number';
+                                      } else if (value.length < 10) {
+                                        return 'Please enter a 10 digit number';
                                       }
                                       return null;
                                     },
+                                    onTap: () {
+                                      setState(() {
+                                        _isButtonVisible = false;
+                                      });
+                                    },
+                                    onFieldSubmitted: (_) {
+                                      setState(() {
+                                        _isButtonVisible = true;
+                                      });
+                                    },
+                                    focusNode: _mobileFocusNode,
                                     keyboardType: TextInputType.phone,
                                     decoration: InputDecoration(
                                       counterText: '',
@@ -773,9 +770,9 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                               width: double.infinity,
                               color: Color(0xFFF2FA95).withOpacity(0.5),
                               child: _image == null
-                                  ? expertData['application_form'] != null
+                                  ? expertData['id_proof_document'] != null
                                       ? Image.network(
-                                          expertData['application_form'],
+                                          expertData['id_proof_document'],
                                           width: getMediaQueryWidth(
                                               context: context, value: 150),
                                           height: getMediaQueryHeight(
@@ -1067,18 +1064,35 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                         height:
                             getMediaQueryHeight(context: context, value: 25),
                       ),
-                      CustomContainerMediamButton(
-                          buttonText: 'Save Change',
-                          onTap: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => OtpPageView()));
-                          }
-                          // async {
-                          //   await post();
-                          // },
-                          ),
+
+                      Visibility(
+                        visible: _isButtonVisible,
+                        child: CustomContainerMediamButton(
+                            buttonText: 'Save Change',
+                            onTap: () async {
+                              //  async {
+                              await post();
+                            }
+                            // {
+                            // showDialog(
+                            //     context: context,
+                            //     builder: (BuildContext context) {
+                            //       return AlertDialog(
+                            //         content: SingleChildScrollView(
+                            //           child: OtpView(
+                            //             expertId: _userId,
+                            //             expertname: _username,
+                            //           ),
+                            //         ),
+                            //       );
+                            //     });
+
+                            // }
+                            // async {
+                            //   await post();
+                            // },
+                            ),
+                      ),
                       SizedBox(
                         height:
                             getMediaQueryHeight(context: context, value: 25),

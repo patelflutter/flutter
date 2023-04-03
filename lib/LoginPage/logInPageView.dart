@@ -1,11 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:homofix/Custom_Widget/textStyle.dart';
 import 'dart:convert';
 import "package:http/http.dart" as http;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../DashBord/dashbord.dart';
+import '../dashbord.dart';
 import 'SignUpPage/signupPageView.dart';
 import 'dart:async';
 
@@ -17,128 +16,196 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool _showPassword = false;
   bool isLoading = false;
+  var isDeviceConnected = false;
+  bool isAlertSet = false;
+  late StreamSubscription subscription;
 
   int? state = 0;
   final formKey = GlobalKey<FormState>();
+  TextEditingController _email = TextEditingController();
+  TextEditingController _paasword = TextEditingController();
 
-  @override
-  Widget build(BuildContext context) {
-    TextEditingController _email = TextEditingController();
-    TextEditingController _paasword = TextEditingController();
+  Future<void> _login(BuildContext context) async {
+    setState(() {
+      isLoading = true;
+    });
 
-    Future<void> _login(BuildContext context) async {
-      setState(() {
-        isLoading = true;
-      });
-      final url = Uri.parse('https://armaan.pythonanywhere.com/api/Login/');
-      final body = {'username': _email.text, 'password': _paasword.text};
+    final url = Uri.parse('https://armaan.pythonanywhere.com/api/Login/');
+    final body = {
+      'username': _email.text,
+      'password': _paasword.text,
+    };
 
+    try {
       final response = await http.post(url, body: body);
 
       if (response.statusCode == 200) {
-        setState(() {
-          isLoading = false;
-        });
         final jsonResponse = json.decode(response.body);
-        final id = jsonResponse['user']['id'];
-        final email = jsonResponse['user']['email'].toString();
-
+        final user = jsonResponse['user'];
+        final id = user['id'];
+        final email = user['email'];
         final prefs = await SharedPreferences.getInstance();
-
+        prefs.setString('username', _email.text);
         prefs.setString('id', id.toString());
         prefs.setString('email', email.toString());
-        prefs.setString('username', _email.text);
 
-        prefs.setString('password', _paasword.text);
-        Fluttertoast.showToast(
-            msg: "Login successful",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.green,
-            textColor: Colors.white,
-            fontSize: 16.0);
-        print('Response body: ${response.body}');
-        print('Email: $email');
-        print('User ID: $id');
-        print('Email ID: $email');
-        print(prefs.getString('email'));
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => DashBord()),
-        );
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-        Fluttertoast.showToast(
-            msg: "Invalid Username or Password ",
+        final expertUrl =
+            Uri.parse('https://armaan.pythonanywhere.com/api/Expert/$id/');
+        final expertResponse = await http.get(expertUrl);
+
+        if (expertResponse.statusCode == 200) {
+          final expertJsonResponse = json.decode(expertResponse.body);
+          final expertStatus = expertJsonResponse['status'];
+
+          if (expertStatus == 'Hold') {
+            Fluttertoast.showToast(
+              msg: "Your account is on hold, please contact support",
+              toastLength: Toast.LENGTH_LONG,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0,
+            );
+          } else if (expertStatus == 'Deactivate') {
+            Fluttertoast.showToast(
+              msg: "Your account has been deactivated",
+              toastLength: Toast.LENGTH_LONG,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0,
+            );
+          } else {
+            Fluttertoast.showToast(
+              msg: "Login successful",
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.green,
+              textColor: Colors.white,
+              fontSize: 16.0,
+            );
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => DashBord()),
+            );
+          }
+        } else {
+          Fluttertoast.showToast(
+            msg: "Error checking expert status",
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.BOTTOM,
             timeInSecForIosWeb: 1,
             backgroundColor: Colors.red,
             textColor: Colors.white,
-            fontSize: 16.0);
-      }
-    }
-
-//  Future post() async {
-//     print(_email.text);
-//     setState(() {
-//       state = 1;
-//     });
-//     final Map<String, dynamic> activityData = {
-//       "id": id,
-//       "first_name": _firstName.text,
-//       "last_name": _lastName.text,
-//       "username": _username.text,
-//       "password": password,
-//       "email": _email.text,
-//       "rank": rank,
-//       "user_type": usertype,
-//       "user_id": widget.userID
-//     };
-//     print(activityData);
-//     try {
-//       Dio dio = Dio();
-//       print(id);
-//       await http.put(
-//         Uri.http("ssrnoida12.herokuapp.com", "/api/User/${id}/"),
-//         body: jsonEncode(activityData),
-//         headers: {
-//           "content-type": "application/json",
-//         },
-//       );
-
-//       print("Done");
-//       setState(() {
-//         state = 2;
-//       });
-//     } catch (e) {
-//       print(e);
-//     }
-//   }
-    Future<Map<String, dynamic>> getLoggedInUserData() async {
-      // Get the stored token from SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('token');
-
-      final response = await http.get(
-        Uri.parse('https://armaan.pythonanywhere.com/api/Expert/'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Token $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final userData = jsonDecode(response.body);
-        return userData;
+            fontSize: 16.0,
+          );
+        }
       } else {
-        throw Exception('Failed to get logged-in user data');
+        Fluttertoast.showToast(
+          msg: "Invalid username or password",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
       }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "An error occurred, please try again later",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
     }
 
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _email.dispose();
+    _paasword.dispose();
+  }
+  // Future<void> checkLoggedIn() async {
+  //   final prefs = await SharedPreferences.getInstance();
+
+  //   prefs.setString('username', _email.text);
+  //   prefs.setString('password', _paasword.text);
+  //   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+  //   if (isLoggedIn) {
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => Login()),
+  //     );
+  //   } else {
+  //     Navigator.pushReplacement(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => DashBord()),
+  //     );
+  //   }
+  // }
+  // void _autoLogin() async {
+  //   final prefs = await SharedPreferences.getInstance();
+
+  //   final username = prefs.getString('username');
+  //   final password = prefs.getString('password');
+
+  //   if (username != null && password != null) {
+  //     setState(() {
+  //       isLoading = true;
+  //     });
+  //     final url = Uri.parse('https://armaan.pythonanywhere.com/api/Login/');
+  //     final body = {'username': username, 'password': password};
+
+  //     final response = await http.post(url, body: body);
+
+  //     if (response.statusCode == 200) {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       final jsonResponse = json.decode(response.body);
+  //       final user = jsonResponse['user'];
+  //       final id = user['id'];
+  //       final email = user['email'];
+
+  //       prefs.setString('id', id.toString());
+  //       prefs.setString('email', email.toString());
+
+  //       Navigator.pushReplacement(
+  //         context,
+  //         MaterialPageRoute(builder: (context) => DashBord()),
+  //       );
+  //     } else {
+  //       setState(() {
+  //         isLoading = false;
+  //       });
+  //       Fluttertoast.showToast(
+  //           msg: "Invalid Username or Password ",
+  //           toastLength: Toast.LENGTH_SHORT,
+  //           gravity: ToastGravity.BOTTOM,
+  //           timeInSecForIosWeb: 1,
+  //           backgroundColor: Colors.red,
+  //           textColor: Colors.white,
+  //           fontSize: 16.0);
+  //     }
+  //   }
+  // }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Form(
         key: formKey,
@@ -158,21 +225,13 @@ class _LoginState extends State<Login> {
                   children: [
                     Padding(
                         padding: const EdgeInsets.only(top: 180, left: 30),
-                        child:
-                            // Text('Login',
-                            //     style: TextStyle(
-                            //         fontSize: 40,
-                            //         fontWeight: FontWeight.bold,
-                            //         color: Colors.black87)),
-                            GradientText("Login",
-                                gradient: LinearGradient(colors: [
-                                  Color(4283794685),
-                                  Color(4283794685)
-                                ]),
-                                style: TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87))),
+                        child: GradientText("Login",
+                            gradient: LinearGradient(
+                                colors: [Color(4283794685), Color(4283794685)]),
+                            style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87))),
                     SizedBox(
                       height: 40,
                     ),
@@ -293,14 +352,14 @@ class _LoginState extends State<Login> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Text(
-                                'New to Logistics?',
+                                'Not a member?',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                     color: Color(0xFF646464)),
                               ),
                               TextButton(
                                 child: Text(
-                                  'Register',
+                                  'Signup',
                                   style: customSmallTextStyle,
                                   //   textAlign: TextAlign.right,
                                 ),
@@ -317,31 +376,6 @@ class _LoginState extends State<Login> {
                           SizedBox(
                             height: 20,
                           ),
-                          // Align(
-                          //   alignment: Alignment.centerRight,
-                          //   child: GestureDetector(
-                          //     onTap: () {
-                          //       print("object");
-                          //       singin();
-                          //     },
-                          //     child: CustomContainerSmallButton(
-                          //         buttonText: "Log in",
-                          //         onTap: () {
-                          //           // if (formKey.currentState!.validate()) {
-                          //           //   singin();
-
-                          //           //   Navigator.push(
-                          //           //       context,
-                          //           //       MaterialPageRoute(
-                          //           //           builder: (context) => DashBord(
-                          //           //                 id: 23,
-                          //           //                 userId: '',
-                          //           //                 userType: '',
-                          //           //               )));
-                          //           // }
-                          //         }),
-                          //   ),
-                          // ),
                           Align(
                             alignment: Alignment.centerRight,
                             child: GestureDetector(
@@ -407,10 +441,6 @@ class _LoginState extends State<Login> {
     if (state == 0) {
       return Text(
         "Update Profile",
-        // style: GoogleFonts.outfit(
-        //     color: Color(0xffffffff),
-        //     fontSize: 20,
-        //     fontWeight: FontWeight.w500),
       );
     } else if (state == 1) {
       return CircularProgressIndicator(
@@ -431,6 +461,37 @@ class _LoginState extends State<Login> {
       );
     }
   }
+
+//   showDialogBox(context) {
+//     showCupertinoDialog(
+//       context: context,
+//       builder: (BuildContext context) {
+//         return CupertinoAlertDialog(
+//           title: const Text("No Connection"),
+//           content: const Text("Please check your internet connectivity"),
+//           actions: [
+//             CupertinoDialogAction(
+//               child: const Text("OK"),
+//               onPressed: () async {
+//                 Navigator.pop(context, 'cancel');
+//                 setState(() => isAlertSet = false);
+
+//                 isAlertSet = false;
+//                 isDeviceConnected =
+//                     await InternetConnectionChecker().hasConnection;
+//                 if (!isDeviceConnected) {
+//                   showDialogBox(context);
+//                   setState(() {
+//                     isAlertSet = true;
+//                   });
+//                 }
+//               },
+//             ),
+//           ],
+//         );
+//       },
+//     );
+//   }
 }
 
 class GradientText extends StatelessWidget {

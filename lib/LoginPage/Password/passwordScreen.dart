@@ -74,12 +74,12 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ),
                 size,
                 GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => OTPScreen()),
-                    );
-                  },
+                  // onTap: () {
+                  //   Navigator.push(
+                  //     context,
+                  //     MaterialPageRoute(builder: (context) => OtpView()),
+                  //   );
+                  // },
                   child: CustomContainerMediamButton(
                     buttonText: 'Submit',
                     onTap: () {},

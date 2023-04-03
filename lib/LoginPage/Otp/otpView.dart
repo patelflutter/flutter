@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:homofix/Custom_Widget/responsiveHeigh_Width.dart';
-import '../../Custom_Widget/custom_mediamButton.dart';
 import '../../Custom_Widget/textStyle.dart';
-import '../Reset Password/resetPassword.dart';
 
-class OTPScreen extends StatefulWidget {
+class OtpView extends StatefulWidget {
+  final String expertId;
+  final String expertname;
+  OtpView({Key? key, required this.expertId, required this.expertname})
+      : super(key: key);
+
   @override
-  _OTPScreenState createState() => _OTPScreenState();
+  State<OtpView> createState() => _OtpViewState();
 }
 
-class _OTPScreenState extends State<OTPScreen> {
+class _OtpViewState extends State<OtpView> {
   TextEditingController controller1 = TextEditingController();
   TextEditingController controller2 = TextEditingController();
   TextEditingController controller3 = TextEditingController();
@@ -34,69 +37,75 @@ class _OTPScreenState extends State<OTPScreen> {
     var size = SizedBox(
       height: 15,
     );
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.white,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Image.asset("assets/undraw_Vault_re_s4my.png"),
-                size,
-                Text("Enter OTP", style: customTextStyle),
-                size,
-                Row(
-                  children: const [
-                    Text(
-                      "An 4 digit Code has been send to :",
-                      style: TextStyle(color: Color(0xFFC5C5C5)),
-                    ),
-                    Text(
-                      "9472064003 ",
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.asset("assets/undraw_Vault_re_s4my.png"),
+            size,
+            Text("Enter OTP", style: customTextStyle),
+
+            Text(
+              "A 4 digit Code has been send to :",
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Color(0xFFC5C5C5), fontSize: 12),
+            ),
+            Text(
+              "9472064003 ",
+              style: TextStyle(
+                color: Color(0xff6956F0),
+              ),
+            ),
+            size,
+            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              buildOTPTextField(controller1, focusNode1),
+              buildOTPTextField(controller2, focusNode2),
+              buildOTPTextField(controller3, focusNode3),
+              buildOTPTextField(controller4, focusNode4),
+            ]),
+            size,
+            size,
+            Center(
+              child: GestureDetector(
+                onTap: () {},
+                child: Container(
+                  decoration: BoxDecoration(
+                      border: Border.all(width: 2, color: Color(0xff6956F0)),
+                      borderRadius: BorderRadius.circular(6)),
+                  height: getMediaQueryHeight(context: context, value: 45),
+                  width: getMediaQueryWidth(context: context, value: 100),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Center(
+                        child: Text(
+                      "Verify".toUpperCase(),
                       style: TextStyle(
-                        color: Color(0xff1b213c),
-                      ),
-                    ),
-                  ],
-                ),
-                size,
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      buildOTPTextField(controller1, focusNode1),
-                      buildOTPTextField(controller2, focusNode2),
-                      buildOTPTextField(controller3, focusNode3),
-                      buildOTPTextField(controller4, focusNode4),
-                    ]),
-                size,
-                size,
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ResetPassword()),
-                    );
-                  },
-                  child: Center(
-                    child: CustomContainerSmallButton(
-                      buttonText: 'Verify',
-                      onTap: () {},
-                    ),
+                          color: Color(0xff6956F0),
+                          fontWeight: FontWeight.bold),
+                    )),
                   ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            )
+            // GestureDetector(
+            //   onTap: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (context) => ResetPassword()),
+            //     );
+            //   },
+            //   child: Center(
+            //     child: CustomContainerSmallButton(
+            //       buttonText: 'Verify',
+            //       onTap: () {},
+            //     ),
+            //   ),
+            // ),
+          ],
         ),
       ),
     );
@@ -110,7 +119,7 @@ class _OTPScreenState extends State<OTPScreen> {
         width: getMediaQueryWidth(context: context, value: 38.0),
         height: getMediaQueryHeight(context: context, value: 40.0),
         decoration: BoxDecoration(
-          color: Color.fromARGB(255, 235, 235, 235),
+          color: Color(0xFFEBEBEB),
           borderRadius: BorderRadius.circular(8.0),
           border: Border.all(
             color: focusNode.hasFocus ? Colors.blue : Colors.grey,
@@ -124,7 +133,7 @@ class _OTPScreenState extends State<OTPScreen> {
           style: const TextStyle(
               fontSize: 24.0,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF012D52)),
+              color: Color(0xff6956F0)),
           maxLength: 1,
           textAlign: TextAlign.center,
           decoration: const InputDecoration(

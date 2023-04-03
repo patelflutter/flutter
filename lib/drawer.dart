@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_zoom_drawer/config.dart';
 import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
-import 'package:flutter/material.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
