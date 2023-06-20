@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "homofix" "\0"
+            VALUE "FileDescription", "Homofix Expert" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "homofix" "\0"
+            VALUE "InternalName", "Homofix Expert" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "homofix.exe" "\0"
-            VALUE "ProductName", "homofix" "\0"
+            VALUE "ProductName", "Homofix Expert" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

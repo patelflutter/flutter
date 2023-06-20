@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:homofix/Custom_Widget/custom_mediamButton.dart';
 import 'package:homofix/Custom_Widget/textStyle.dart';
 import 'package:dio/dio.dart';
-
 import 'addMoneyWallet.dart';
 
 class AccountDetails {
@@ -14,7 +13,11 @@ class AccountDetails {
 }
 
 class TransferMoneyScreen extends StatefulWidget {
-  const TransferMoneyScreen({Key? key}) : super(key: key);
+  final String expertId;
+  final double totalShare;
+  const TransferMoneyScreen(
+      {Key? key, required this.expertId, required this.totalShare})
+      : super(key: key);
 
   @override
   State<TransferMoneyScreen> createState() => _TransferMoneyScreenState();
@@ -26,19 +29,21 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
   TextEditingController ifscCodeController = TextEditingController();
   TextEditingController branchController = TextEditingController();
   TextEditingController accountHolderNameController = TextEditingController();
-  List<dynamic> _dataList = [];
+  TextEditingController bankController = TextEditingController();
+  // List<dynamic> _dataList = [];
 
   Future<void> postData() async {
     Dio dio = Dio();
-    String url = "https://armaan.pythonanywhere.com/api/Kyc/?technician=40";
+    String url = "https://support.homofixcompany.com/api/Kyc/";
 
     try {
       FormData formData = FormData.fromMap({
         "Ac_no": accountNoController.text,
+        "bank_name": bankController.text,
         "ifsc_code": ifscCodeController.text,
         "bank_holder_name": accountHolderNameController.text,
         "branch": branchController.text,
-        "technician_id": 40
+        "technician_id": widget.expertId.toString(),
       });
       Response response = await dio.post(url, data: formData);
       if (response.statusCode == 201) {
@@ -70,7 +75,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xff6956F0),
+        backgroundColor: Color(0xff002790),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -132,6 +137,9 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                             ],
                           ),
                           child: TextFormField(
+                            style: TextStyle(
+                                fontSize:
+                                    16.0), // Increase the font size as desired
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter Account no';
@@ -145,11 +153,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                               enabledBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(top: 14.0),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Color(4288914861),
-                              ),
+                              contentPadding: EdgeInsets.all(10),
                             ),
                           ),
                         ),
@@ -187,6 +191,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                           ],
                         ),
                         child: TextFormField(
+                            style: TextStyle(fontSize: 16.0),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'IFSC code';
@@ -200,11 +205,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                               enabledBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(top: 14.0),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Color(4288914861),
-                              ),
+                              contentPadding: EdgeInsets.all(10),
                             )),
                       ),
                     )
@@ -240,6 +241,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                           ],
                         ),
                         child: TextFormField(
+                            style: TextStyle(fontSize: 16.0),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Account Branch';
@@ -253,11 +255,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                               enabledBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(top: 14.0),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Color(4288914861),
-                              ),
+                              contentPadding: EdgeInsets.all(10),
                             )),
                       ),
                     ),
@@ -293,6 +291,7 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                           ],
                         ),
                         child: TextFormField(
+                            style: TextStyle(fontSize: 16.0),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter AccountHolder name';
@@ -306,11 +305,51 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                               enabledBorder: InputBorder.none,
                               errorBorder: InputBorder.none,
                               disabledBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.only(top: 14.0),
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: Color(4288914861),
-                              ),
+                              contentPadding: EdgeInsets.all(10),
+                            )),
+                      ),
+                    ),
+                  ]),
+                  SizedBox(height: 15),
+                  Column(children: [
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        "Bank Name",
+                        textAlign: TextAlign.start,
+                        style:
+                            TextStyle(color: Color(4288914861), fontSize: 18),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Material(
+                      borderRadius: BorderRadius.circular(10.0),
+                      elevation: 0,
+                      color: Colors.white,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 6.0,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextFormField(
+                            style: TextStyle(fontSize: 16.0),
+                            controller: bankController,
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.all(10),
                             )),
                       ),
                     ),
@@ -326,7 +365,10 @@ class _TransferMoneyScreenState extends State<TransferMoneyScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AddMoneyWallet(),
+                              builder: (context) => AddMoneyWallet(
+                                expertId: widget.expertId,
+                                totalShare: widget.totalShare,
+                              ),
                             ),
                           );
                         }

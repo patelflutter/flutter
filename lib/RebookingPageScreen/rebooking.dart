@@ -1,33 +1,33 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:animation_search_bar/animation_search_bar.dart';
-import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:homofix/New_Booking/productDetailsScrren.dart';
+import 'package:homofix/RebookingPageScreen/rebookingDetails.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Custom_Widget/textStyle.dart';
-import 'productDetailsScrren.dart';
 
-//
-class ProductScreenView extends StatefulWidget {
+import '../Custom_Widget/textStyle.dart';
+
+class RebookingListView extends StatefulWidget {
   final String expertId;
   final String expertname;
-  ProductScreenView(
+
+  RebookingListView(
       {Key? key, required this.expertId, required this.expertname})
       : super(key: key);
 
   @override
-  State<ProductScreenView> createState() => _ProductScreenViewState();
+  State<RebookingListView> createState() => _RebookingListViewState();
 }
 
-class _ProductScreenViewState extends State<ProductScreenView>
+class _RebookingListViewState extends State<RebookingListView>
     with AutomaticKeepAliveClientMixin {
-  List<Map<String, dynamic>> items = [];
-  bool get wantKeepAlive => true;
-  TextEditingController textController = TextEditingController();
   bool isLoading = true;
+  bool get wantKeepAlive => true;
+  List<Map<String, dynamic>> items = [];
+  List<Map<String, dynamic>> itemsList = [];
+  TextEditingController textController = TextEditingController();
+  // bool isLoading = true;
   String _userId = '';
   String _username = '';
   Color _getRandomColor() {
@@ -52,41 +52,13 @@ class _ProductScreenViewState extends State<ProductScreenView>
 
   Future<void> fetchData() async {
     final response = await http.get(Uri.parse(
-        'https://support.homofixcompany.com/api/Task/?technician_id=${widget.expertId}'));
+        'https://support.homofixcompany.com/api/Rebooking/?technician_id=${widget.expertId}'));
+
     if (response.statusCode == 200) {
       final parsedResponse = json.decode(response.body);
-      final List<Map<String, dynamic>> itemsList =
-          List<Map<String, dynamic>>.from(parsedResponse);
-
-      final List<dynamic> bookingProducts = parsedResponse
-          .map((item) => item['booking_product'])
-          .where((bookingProduct) => bookingProduct != null)
-          .toList();
-
-      final List<dynamic> productIds = bookingProducts
-          .expand<dynamic>((bookingProduct) => bookingProduct)
-          .map<dynamic>((product) => product['product_id'])
-          .toList();
-
-      final List<dynamic> productrealIds = bookingProducts
-          .expand<dynamic>((bookingProduct) => bookingProduct)
-          .map<dynamic>((product) => product['id'])
-          .toList();
-      print("ID $productrealIds");
-      setState(() {
-        items = itemsList
-            .map<Map<String, dynamic>>((item) => item['booking'])
-            .where((booking) => booking['status'] != 'Completed')
-            .toList();
-
-        // sort items by order id
-        items.sort((a, b) => a['order_id'].compareTo(b['order_id']));
-        items.sort((a, b) =>
-            a['booking']?['order_id']
-                ?.compareTo(b['booking']?['order_id'] ?? 0) ??
-            0);
-        isLoading = false;
-      });
+      itemsList = List<Map<String, dynamic>>.from(parsedResponse);
+      isLoading = false;
+      setState(() {});
     } else {
       throw Exception('Failed to load data');
     }
@@ -96,28 +68,16 @@ class _ProductScreenViewState extends State<ProductScreenView>
   void initState() {
     super.initState();
     _getUserId();
-    // timer = Timer.periodic(Duration(seconds: 1), (timer) {
-    //   _fetchTechnicianDataList();
-    // });
     fetchData();
-
-    // fetchBookingDetails().then((bookingDetails) {
-    //   setState(() {
-    //     _bookingDetails = bookingDetails;
-    //   });
-    // });
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Assign':
-        return Color(0xFFF7E2C2);
-      case 'Inprocess':
-        return Color(0xFFCFEED0);
-      case 'Proceed':
-        return Color(0xFFFAF1A3);
-      case 'cancelled':
         return Colors.red;
+      case 'Completed':
+        return Color.fromARGB(255, 102, 236, 106);
+
       default:
         return Colors.grey;
     }
@@ -125,39 +85,21 @@ class _ProductScreenViewState extends State<ProductScreenView>
 
   int _selectedIndex = -1;
   @override
+  // ignore: must_call_super
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> filteredList = itemsList.where((booking) {
+      String orderStatus = booking['status'];
+      return orderStatus == 'Assign';
+    }).toList();
     return Scaffold(
-      appBar: PreferredSize(
-          preferredSize: const Size(double.infinity, 65),
-          child: SafeArea(
-              child: Container(
-            decoration:
-                const BoxDecoration(color: Color(0xff002790), boxShadow: [
-              BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 3,
-                  spreadRadius: 0,
-                  offset: Offset(0, 5))
-            ]),
-            alignment: Alignment.center,
-            child: AnimationSearchBar(
-                searchIconColor: Colors.white,
-                backIcon: FontAwesomeIcons.arrowLeft,
-                backIconColor: Colors.white,
-                centerTitle: 'Your Booking'.toUpperCase(),
-                centerTitleStyle: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                    fontSize: 20),
-                onChanged: (text) => debugPrint(text),
-                cursorColor: Colors.black,
-                searchTextEditingController: textController,
-                searchFieldDecoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.white, width: .5),
-                    borderRadius: BorderRadius.circular(15)),
-                horizontalPadding: 5),
-          ))),
+      appBar: AppBar(
+        backgroundColor: Color(0xff002790),
+        elevation: 4,
+        title: Text("Rebooking List".toUpperCase(),
+            style: TextStyle(
+              color: Colors.white,
+            )),
+      ),
       body: SafeArea(
         child: isLoading
             ? Center(
@@ -165,7 +107,7 @@ class _ProductScreenViewState extends State<ProductScreenView>
                   color: Colors.black,
                 ),
               )
-            : items.isEmpty
+            : filteredList.isEmpty
                 ? Center(
                     child: Text('No new booking'.toUpperCase()),
                   )
@@ -173,37 +115,31 @@ class _ProductScreenViewState extends State<ProductScreenView>
                     separatorBuilder: (BuildContext context, int index) {
                       return SizedBox();
                     },
-                    itemCount: items.length,
+                    itemCount: filteredList.length,
                     itemBuilder: (BuildContext context, int index) {
-                      final booking = items[index];
+                      final booking = filteredList[index];
 
                       // ------Booking Order --------
 
-                      final orderID = booking['order_id'];
-
+                      final orderID = booking['booking_product']['booking']
+                              ?['order_id'] ??
+                          '';
                       final orderDate = DateFormat('dd/MM/yyyy')
-                          .format(DateTime.parse(booking['booking_date']));
-
-                      final DateFormat dateTimeFormat =
-                          DateFormat('dd/MM/yyyy HH:mm:ss');
-                      final DateTime bookingDate =
-                          DateTime.parse(booking['booking_date']);
-                      final String formattedDateTime =
-                          dateTimeFormat.format(bookingDate);
-
+                          .format(DateTime.parse(booking['date']));
                       final orderState = booking['id'];
                       final orderStatus = booking['status'];
-                      final taxAmount = booking['tax_amount'];
-                      final subTotal = booking['total_amount'];
-                      final totalPrice = booking['final_amount'];
-
                       // ------Booking Customer --------
 
-                      final customerState = booking['customer']['state'];
-                      final customerCity = booking['customer']['city'];
-                      final customerZipcode = booking['customer']['zipcode'];
-                      final customerArea = booking['customer']['area'];
-
+                      final customerState = booking['booking_product']
+                          ['booking']['customer']['state'];
+                      final customerCity = booking['booking_product']['booking']
+                          ['customer']['city'];
+                      final customerZipcode = booking['booking_product']
+                          ['booking']['customer']['zipcode'];
+                      final customerArea = booking['booking_product']['booking']
+                          ['customer']['area'];
+                      // final isCompleted = orderStatus == 'completed';
+                      // final tileEnabled = isCompleted ? true : false;
                       return Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Column(
@@ -217,33 +153,34 @@ class _ProductScreenViewState extends State<ProductScreenView>
                                     ? Colors.yellow
                                     : null,
                                 child: ListTile(
+                                  // enabled: tileEnabled,
                                   onTap: () {
                                     Map<String, dynamic> customer =
-                                        items[index]['customer'];
+                                        itemsList[index]['booking_product']
+                                            ['booking']['customer'];
 
-                                    Navigator.pushReplacement(
+                                    Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => NewOrderList(
-                                            expertId: _userId,
-                                            orderId: orderState,
-                                            city: customerCity,
-                                            taxprice: taxAmount,
-                                            subprice: subTotal,
-                                            totalprice: totalPrice,
-                                            area: customerArea,
-                                            zipCode: customerZipcode,
-                                            state: customerState,
-                                            orderDate:
-                                                formattedDateTime,
-                                            // qnt: booking['booking_product'],
-                                            productSet:
-                                                booking['booking_product'],
-                                            products: booking['products'],
-                                            customerdetails: customer,
-                                            status: orderStatus,
-                                            //  bookingProducts: bookingProducts,
-                                            expertname: _username),
+                                        builder: (context) =>
+                                            NewRebookingDetailScreen(
+                                                expertId: _userId,
+                                                orderId: orderState,
+                                                city: customerCity,
+                                                area: customerArea,
+                                                zipCode: customerZipcode,
+                                                state: customerState,
+                                                productSet:
+                                                    booking['booking_product']
+                                                            ['booking']
+                                                        ['booking_product'],
+                                                products:
+                                                    booking['booking_product']
+                                                        ['booking']['products'],
+                                                customerdetails: customer,
+                                                status: orderStatus,
+                                                //  bookingProducts: bookingProducts,
+                                                expertname: _username),
                                       ),
                                     );
                                   },
@@ -276,12 +213,11 @@ class _ProductScreenViewState extends State<ProductScreenView>
                                     ),
                                   ),
                                   title: Text(
-                                    '$customerState'.toString(),
+                                    '$customerState',
                                     style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff002790),
-                                    ),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xff002790)),
                                   ),
                                   subtitle: Text(
                                     '$orderID',
@@ -291,7 +227,7 @@ class _ProductScreenViewState extends State<ProductScreenView>
                                     direction: Axis.vertical,
                                     children: [
                                       Text(
-                                        "$orderDate".toString(),
+                                        "$orderDate",
                                         style: customSmallTextStyle,
                                       ),
                                       Row(

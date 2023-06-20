@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:homofix/Custom_Widget/textStyle.dart';
-import 'package:homofix/DashBord/DashBord_Material/completeBookindDetails.dart';
+import 'package:homofix/Joining/completeBookindDetails.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../Joining/recompleteBooking.dart';
+import '../RebookingPageScreen/rebookingDetails.dart';
 
 class CompleteBookingView extends StatefulWidget {
   // final List<Map<String, dynamic>> items;
@@ -15,9 +19,13 @@ class CompleteBookingView extends StatefulWidget {
   State<CompleteBookingView> createState() => _CompleteBookingViewState();
 }
 
-class _CompleteBookingViewState extends State<CompleteBookingView> {
+class _CompleteBookingViewState extends State<CompleteBookingView>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> items = [];
+
+  List<Map<String, dynamic>> itemsList = [];
   bool isLoading = true;
+  late TabController _tabController;
   String _userId = '';
   String _username = '';
 
@@ -32,9 +40,19 @@ class _CompleteBookingViewState extends State<CompleteBookingView> {
     });
   }
 
+  Color _getRandomColor() {
+    Random random = new Random();
+    return Color.fromARGB(
+      255,
+      random.nextInt(256),
+      random.nextInt(256),
+      random.nextInt(256),
+    );
+  }
+
   Future<void> fetchData() async {
     final response = await http.get(Uri.parse(
-        'https://armaan.pythonanywhere.com/api/Task/?technician_id=${widget.expertId}'));
+        'https://support.homofixcompany.com/api/Task/?technician_id=${widget.expertId}'));
     if (response.statusCode == 200) {
       final parsedResponse = json.decode(response.body);
       final List<Map<String, dynamic>> itemsList =
@@ -50,7 +68,7 @@ class _CompleteBookingViewState extends State<CompleteBookingView> {
         // }).toList();
         items = itemsList
             .map<Map<String, dynamic>>((item) => item['booking'])
-            .where((booking) => booking['status'] == 'completed')
+            .where((booking) => booking['status'] == 'Completed')
             .toList();
 
         // sort items by order id
@@ -61,9 +79,28 @@ class _CompleteBookingViewState extends State<CompleteBookingView> {
             0);
         isLoading = false;
       });
-      print(parsedResponse);
+      // print(parsedResponse);
 
-      print(widget.expertId);
+      // print(widget.expertId);
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
+
+  Future<void> beabookingFetch() async {
+    final response = await http.get(Uri.parse(
+        'https://support.homofixcompany.com/api/Rebooking/?technician_id=${widget.expertId}'));
+
+    if (response.statusCode == 200) {
+      final parsedResponse = json.decode(response.body);
+      itemsList = List<Map<String, dynamic>>.from(parsedResponse);
+
+      // Filter items based on status
+      itemsList =
+          itemsList.where((item) => item['status'] == 'Completed').toList();
+
+      isLoading = false;
+      setState(() {});
     } else {
       throw Exception('Failed to load data');
     }
@@ -72,182 +109,380 @@ class _CompleteBookingViewState extends State<CompleteBookingView> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _getUserId();
     fetchData();
+    beabookingFetch();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Assign':
-        return Colors.orange;
-      case 'in_progress':
-        return Colors.yellow;
-      case 'completed':
+        return Color(0xFFF7E2C2);
+      case 'Inprocess':
+        return Color(0xFFCEE986);
+      case 'Proceed':
+        return Color.fromARGB(255, 192, 129, 35);
+      case 'Completed':
         return Colors.green;
-      case 'cancelled':
-        return Colors.red;
+
       default:
         return Colors.grey;
     }
   }
 
+  int _selectedIndex = -1;
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color(0xff6956F0),
-        elevation: 4,
-        title: Text("Complete Booking".toUpperCase(),
-            style: TextStyle(
-              color: Colors.white,
-            )),
-      ),
-      // appBar: AppBar(
-      //   title: Text("Complete Booking"),
-      // ),
-      body: isLoading
-          ? Center(
-              child: CircularProgressIndicator.adaptive(
-                backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Color(0xff002790),
+          elevation: 4,
+          title: Text("Complete Booking".toUpperCase(),
+              style: TextStyle(
+                color: Colors.white,
+              )),
+          bottom: TabBar(
+            labelColor: Colors.white,
+            controller: _tabController,
+            tabs: [
+              Tab(
+                text: 'Book Complete'.toUpperCase(),
               ),
-            )
-          : items.isEmpty
-              ? Center(
-                  child: Text(
-                  "No Data".toUpperCase(),
-                  style: TextStyle(color: Colors.grey),
-                ))
-              : SafeArea(
-                  child: ListView.separated(
-                    separatorBuilder: (BuildContext context, int index) {
-                      return SizedBox();
-                    },
-                    itemCount: items.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final booking = items[index];
-                      final orderID = booking['order_id'];
-                      final orderDate = DateFormat('dd/MM/yyyy')
-                          .format(DateTime.parse(booking['booking_date']));
+              Tab(text: 'Reabook Complete'.toUpperCase()),
+            ],
+          ),
+        ),
+        // appBar: AppBar(
+        //   title: Text("Complete Booking"),
+        // ),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            isLoading
+                ? Center(
+                    child: CircularProgressIndicator.adaptive(
+                      backgroundColor: Colors.black,
+                    ),
+                  )
+                : items.isEmpty
+                    ? Center(
+                        child: Text(
+                        "No Data".toUpperCase(),
+                        style: TextStyle(color: Colors.grey),
+                      ))
+                    : SafeArea(
+                        child: ListView.separated(
+                          separatorBuilder: (BuildContext context, int index) {
+                            return SizedBox();
+                          },
+                          itemCount: items.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final booking = items[index];
 
-                      final orderState = booking['id'];
-                      final orderCity = booking['city'];
-                      final orderArea = booking['area'];
-                      final orderZipcode = booking['zip_code'];
-                      final orderAddress = booking['address'];
-                      final orderDispriction = booking['description'];
-                      final orderRealState = booking['state'];
-                      final orderStatus = booking['status'];
-                      if (orderStatus != 'completed') {
-                        return SizedBox();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Column(
-                          children: <Widget>[
-                            Container(
-                              decoration: BoxDecoration(
+                            final orderID = booking['order_id'];
+                            final orderDate = DateFormat('dd/MM/yyyy').format(
+                                DateTime.parse(booking['booking_date']));
+                            final orderState = booking['id'];
+                            final orderStatus = booking['status'];
 
-                                  //  border: Border.all(width: 1, color: Colors.grey),
-                                  ),
-                              child: Card(
-                                child: ListTile(
-                                  onTap: () {
-                                    Map<String, dynamic> customer =
-                                        items[index]['customer'];
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              CompleteBookingDetails(
-                                                  expertId: _userId,
-                                                  orderId: orderState,
-                                                  city: orderCity,
-                                                  area: orderArea,
-                                                  zipCode: orderZipcode,
-                                                  address: orderAddress,
-                                                  discription: orderDispriction,
-                                                  orederState: orderRealState,
-                                                  products: booking['products'],
-                                                  customerdetails: customer,
-                                                  expertname: _username),
-                                        ));
-                                  },
-                                  leading: Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        // border:
-                                        //     Border.all(width: 1, color: Colors.black),
-                                        borderRadius: BorderRadius.circular(9),
-                                        color: Colors.white,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.white54.withOpacity(0.5),
-                                            spreadRadius: 1.5,
-                                            blurRadius: 10,
-                                            offset: Offset(
-                                              1,
-                                              1,
+                            // ------Booking Customer --------
+
+                            final customerState = booking['customer']['state'];
+                            final customerCity = booking['customer']['city'];
+                            final customerZipcode =
+                                booking['customer']['zipcode'];
+                            final customerArea = booking['customer']['area'];
+                            if (orderStatus != 'Completed') {
+                              return SizedBox();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Column(
+                                children: <Widget>[
+                                  Container(
+                                    decoration: BoxDecoration(
+
+                                        //  border: Border.all(width: 1, color: Colors.grey),
+                                        ),
+                                    child: Card(
+                                      child: ListTile(
+                                        onTap: () {
+                                          Map<String, dynamic> customer =
+                                              items[index]['customer'];
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  CompleteBookingDetails(
+                                                      expertId: _userId,
+                                                      orderId: orderState,
+                                                      city: customerCity,
+                                                      area: customerArea,
+                                                      zipCode: customerZipcode,
+                                                      state: customerState,
+                                                      productSet: booking[
+                                                          'booking_product'],
+                                                      products:
+                                                          booking['products'],
+                                                      customerdetails: customer,
+
+                                                      //  bookingProducts: bookingProducts,
+                                                      expertname: _username),
                                             ),
+                                          );
+                                        },
+                                        leading: Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              // border:
+                                              //     Border.all(width: 1, color: Colors.black),
+                                              borderRadius:
+                                                  BorderRadius.circular(9),
+                                              color: Colors.white,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.white54
+                                                      .withOpacity(0.5),
+                                                  spreadRadius: 1.5,
+                                                  blurRadius: 10,
+                                                  offset: Offset(
+                                                    1,
+                                                    1,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Image(
+                                                image: AssetImage(
+                                                    "assets/download.jpg")),
                                           ),
-                                        ],
+                                        ),
+                                        title: Text(
+                                          '$customerState',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xff1b213c),
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          "ID $orderID".toUpperCase(),
+                                          style: customSmallTextStyle,
+                                        ),
+                                        trailing: Wrap(
+                                          direction: Axis.vertical,
+                                          children: [
+                                            Text(
+                                              "$orderDate",
+                                              style: customSmallTextStyle,
+                                            ),
+                                            Row(
+                                              children: [
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(6.0),
+                                                  child: Icon(
+                                                    Icons.fiber_manual_record,
+                                                    size: 12,
+                                                    color: _getStatusColor(
+                                                        orderStatus),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '$orderStatus',
+                                                  style: TextStyle(
+                                                    color: _getStatusColor(
+                                                        orderStatus),
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                )
+                                              ],
+                                            )
+                                          ],
+                                        ),
                                       ),
-                                      child: Image(
-                                          image: AssetImage(
-                                              "assets/download.jpg")),
                                     ),
                                   ),
-                                  title: Text(
-                                    '$orderRealState',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xff1b213c),
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    "ID $orderID".toUpperCase(),
-                                    style: customSmallTextStyle,
-                                  ),
-                                  trailing: Wrap(
-                                    direction: Axis.vertical,
-                                    children: [
-                                      Text(
-                                        "$orderDate",
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+            isLoading
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.black,
+                    ),
+                  )
+                : itemsList.isEmpty
+                    ? Center(
+                        child: Text('No new booking'.toUpperCase()),
+                      )
+                    : ListView.separated(
+                        separatorBuilder: (BuildContext context, int index) {
+                          return SizedBox();
+                        },
+                        itemCount: itemsList.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final booking = itemsList[index];
+
+                          // ------Booking Order --------
+
+                          final orderID = booking['booking_product']['booking']
+                                  ?['order_id'] ??
+                              '';
+                          final orderDate = DateFormat('dd/MM/yyyy')
+                              .format(DateTime.parse(booking['date']));
+                          final orderState = booking['id'];
+                          final orderStatus = booking['status'];
+
+                          // ------Booking Customer --------
+
+                          final customerState = booking['booking_product']
+                              ['booking']['customer']['state'];
+                          final customerCity = booking['booking_product']
+                              ['booking']['customer']['city'];
+                          final customerZipcode = booking['booking_product']
+                              ['booking']['customer']['zipcode'];
+                          final customerArea = booking['booking_product']
+                              ['booking']['customer']['area'];
+                          // final isCompleted = orderStatus == 'completed';
+                          // final tileEnabled = isCompleted ? true : false;
+                          return Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Container(
+                                  decoration: BoxDecoration(),
+                                  child: Card(
+                                    elevation: 0,
+                                    color: _selectedIndex == index
+                                        ? Colors.yellow
+                                        : null,
+                                    child: ListTile(
+                                      // enabled: tileEnabled,
+                                      onTap: () {
+                                        Map<String, dynamic> customer =
+                                            itemsList[index]['booking_product']
+                                                ['booking']['customer'];
+
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                CompleteRebookingDetailScreen(
+                                                    expertId: _userId,
+                                                    orderId: orderState,
+                                                    city: customerCity,
+                                                    area: customerArea,
+                                                    zipCode: customerZipcode,
+                                                    state: customerState,
+                                                    productSet:
+                                                        booking['booking_product']
+                                                                ['booking']
+                                                            ['booking_product'],
+                                                    products: booking[
+                                                            'booking_product']
+                                                        ['booking']['products'],
+                                                    customerdetails: customer,
+                                                    status: orderStatus,
+                                                    //  bookingProducts: bookingProducts,
+                                                    expertname: _username),
+                                          ),
+                                        );
+                                      },
+                                      leading: Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(9),
+                                            color: Colors.white,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.white54
+                                                    .withOpacity(0.5),
+                                                spreadRadius: 1.5,
+                                                blurRadius: 10,
+                                                offset: Offset(
+                                                  1,
+                                                  1,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          child: CircleAvatar(
+                                              child: Text(
+                                                '$customerState'
+                                                    .substring(0, 1),
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                              backgroundColor:
+                                                  _getRandomColor()),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        '$customerState',
+                                        style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xff002790)),
+                                      ),
+                                      subtitle: Text(
+                                        '$orderID',
                                         style: customSmallTextStyle,
                                       ),
-                                      Row(
+                                      trailing: Wrap(
+                                        direction: Axis.vertical,
                                         children: [
-                                          Padding(
-                                            padding: const EdgeInsets.all(6.0),
-                                            child: Icon(
-                                              Icons.fiber_manual_record,
-                                              size: 12,
-                                              color:
-                                                  _getStatusColor(orderStatus),
-                                            ),
-                                          ),
                                           Text(
-                                            '$orderStatus',
-                                            style: TextStyle(
-                                              color:
-                                                  _getStatusColor(orderStatus),
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                            "$orderDate",
+                                            style: customSmallTextStyle,
+                                          ),
+                                          Row(
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6.0),
+                                                child: Icon(
+                                                  Icons.fiber_manual_record,
+                                                  size: 12,
+                                                  color: _getStatusColor(
+                                                      orderStatus),
+                                                ),
+                                              ),
+                                              Text(
+                                                '$orderStatus',
+                                                style: TextStyle(
+                                                  color: _getStatusColor(
+                                                      orderStatus),
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           )
                                         ],
-                                      )
-                                    ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-    );
+                          );
+                        },
+                      ),
+          ],
+        ));
   }
 }

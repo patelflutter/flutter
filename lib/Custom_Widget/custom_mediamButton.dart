@@ -36,7 +36,7 @@ class _CustomContainerMediamButtonState
         width: double.infinity,
         height: getMediaQueryHeight(context: context, value: 45),
         decoration: BoxDecoration(
-          color: Color(0xff6956F0),
+          color: Color(0xff002790),
           // gradient:
           //     LinearGradient(colors: [Color(0xffC7BFFA), Color(0xff6956F0)]),
           borderRadius: BorderRadius.circular(8),

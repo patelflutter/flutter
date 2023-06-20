@@ -4,8 +4,8 @@ import 'dart:convert';
 import "package:http/http.dart" as http;
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../Joining/joinScreen.dart';
 import '../dashbord.dart';
-import 'SignUpPage/signupPageView.dart';
 import 'dart:async';
 
 class Login extends StatefulWidget {
@@ -30,7 +30,7 @@ class _LoginState extends State<Login> {
       isLoading = true;
     });
 
-    final url = Uri.parse('https://armaan.pythonanywhere.com/api/Login/');
+    final url = Uri.parse('https://support.homofixcompany.com/api/Login/');
     final body = {
       'username': _email.text,
       'password': _paasword.text,
@@ -50,7 +50,7 @@ class _LoginState extends State<Login> {
         prefs.setString('email', email.toString());
 
         final expertUrl =
-            Uri.parse('https://armaan.pythonanywhere.com/api/Expert/$id/');
+            Uri.parse('https://support.homofixcompany.com/api/Expert/$id/');
         final expertResponse = await http.get(expertUrl);
 
         if (expertResponse.statusCode == 200) {
@@ -87,10 +87,9 @@ class _LoginState extends State<Login> {
               textColor: Colors.white,
               fontSize: 16.0,
             );
-
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => DashBord()),
+              MaterialPageRoute(builder: (BuildContext context) => DashBord()),
             );
           }
         } else {
@@ -226,8 +225,10 @@ class _LoginState extends State<Login> {
                     Padding(
                         padding: const EdgeInsets.only(top: 180, left: 30),
                         child: GradientText("Login",
-                            gradient: LinearGradient(
-                                colors: [Color(4283794685), Color(4283794685)]),
+                            gradient: LinearGradient(colors: [
+                              Color(0xff002790),
+                              Color.fromARGB(255, 14, 60, 187)
+                            ]),
                             style: TextStyle(
                                 fontSize: 40,
                                 fontWeight: FontWeight.bold,
@@ -351,15 +352,24 @@ class _LoginState extends State<Login> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              Text(
-                                'Not a member?',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF646464)),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => MyJoin()));
+                                },
+                                child: Text(
+                                  'Join as Expert?',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF646464)),
+                                ),
                               ),
                               TextButton(
+                                autofocus: true,
                                 child: Text(
-                                  'Signup',
+                                  'Joinnow',
                                   style: customSmallTextStyle,
                                   //   textAlign: TextAlign.right,
                                 ),
@@ -367,7 +377,7 @@ class _LoginState extends State<Login> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (context) => SignupPageView()),
+                                        builder: (context) => MyJoin()),
                                   );
                                 },
                               ),
@@ -418,8 +428,8 @@ class _LoginState extends State<Login> {
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(30),
                                     gradient: LinearGradient(colors: [
-                                      Color(4283794685),
-                                      Color(4283794685)
+                                      Color(0xff002790),
+                                      Color(0xff002790)
                                     ])),
                               ),
                             ),

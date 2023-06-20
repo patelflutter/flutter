@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../../../Custom_Widget/responsiveHeigh_Width.dart';
 
 class BookingHistory extends StatefulWidget {
@@ -106,15 +105,15 @@ class _BookingHistoryState extends State<BookingHistory> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  SizedBox(
-                                    width: getMediaQueryWidth(
-                                        context: context, value: 200),
-                                    child: Text(
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      "Ashok Vihar, New Delhi",
-                                    ),
-                                  ),
+                                  // SizedBox(
+                                  //   width: getMediaQueryWidth(
+                                  //       context: context, value: 200),
+                                  //   child: Text(
+                                  //     maxLines: 2,
+                                  //     overflow: TextOverflow.ellipsis,
+                                  //     "Ashok Vihar, New Delhi",
+                                  //   ),
+                                  // ),
                                   Text(
                                     DateFormat('yyyy-MM-dd HH:mm')
                                         .format(DateTime.now()),

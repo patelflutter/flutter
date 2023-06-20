@@ -7,14 +7,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'LoginPage/logInPageView.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:geocoding/geocoding.dart';
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // final prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
 
-  // final idS = prefs.getString('id');
+  final idS = prefs.getString('id');
   // print("Ids $idS");
   AndroidInitializationSettings androidSetting =
       AndroidInitializationSettings("@mipmap/ic_launcher");
@@ -31,10 +32,7 @@ void main() async {
   bool? initialized =
       await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   log("Nofification: $initialized");
-
-  runApp(MyApp(
-      //  isLoggedIn: isLoggedIn
-      ));
+  runApp(MyApp());
 }
 
 Future<void> onSelectNotification(String? payload) async {
@@ -58,18 +56,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      print("Permission not given");
-
+      //    print("Permission not given");
       LocationPermission asked = await Geolocator.requestPermission();
     } else {
       Position curruntPossition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.best);
-      setState(() {
-        // _latitude = curruntPossition.latitude;
-        // _longitude = curruntPossition.longitude;
-      });
-      print("Logitude:" + curruntPossition.longitude.toString());
-      print("Latitude:" + curruntPossition.latitude.toString());
+        desiredAccuracy: LocationAccuracy.best,
+      );
+      setState(() {});
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        curruntPossition.latitude,
+        curruntPossition.longitude,
+      );
+      Placemark placemark = placemarks.first;
+      String address =
+          '${placemark.name}, ${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.postalCode}, ${placemark.country}';
+      print(address);
     }
   }
 
@@ -78,9 +80,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void checkForNewBooking() async {
     final prefs = await SharedPreferences.getInstance();
     final idS = prefs.getString('id');
-    //  print("Ids $idS");
+
     final response = await http.get(Uri.parse(
-        'https://armaan.pythonanywhere.com/api/Task/?technician_id=$idS'));
+        'https://support.homofixcompany.com/api/Task/?technician_id=$idS'));
 
     if (response.statusCode == 200) {
       final bookings = jsonDecode(response.body) as List<dynamic>;
@@ -98,8 +100,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void showNofication() async {
     AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      "Notification-Homofix",
-      "Homofix",
+      "Homofix Company",
+      "You have new task assign",
       priority: Priority.high,
       importance: Importance.defaultImportance,
     );
@@ -110,28 +112,24 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
     NotificationDetails notiDetails =
         NotificationDetails(android: androidDetails, iOS: iosDetails);
-    //await Future.delayed(Duration(seconds: 10));
     await flutterLocalNotificationsPlugin.show(
-        0, "Sample Notification", "This Is Notification", notiDetails,
-        payload: "Ravi");
+        0, "Homofix", "You have new task assign", notiDetails,
+        payload: "Homofix");
   }
 
   @override
   void initState() {
     super.initState();
-    // checkLoggingStatus();
-    WidgetsBinding.instance.addObserver(this);
-    getCurruntPosition();
 
-    Timer.periodic(Duration(seconds: 10), (timer) {
-      checkForNewBooking();
-    });
+    //   WidgetsBinding.instance.addObserver(this);
+    getCurruntPosition();
+    checkForNewBooking();
   }
 
   @override
   void dispose() {
     super.dispose();
-    WidgetsBinding.instance.removeObserver(this);
+    //   WidgetsBinding.instance.removeObserver(this);
   }
 
   void didChangeAppLifecycleState(AppLifecycleState state) {

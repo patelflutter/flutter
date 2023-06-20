@@ -1,17 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:homofix/Custom_Widget/textStyle.dart';
+import 'package:homofix/dashbord.dart';
 import 'package:image_picker/image_picker.dart';
 import '../Custom_Widget/custom_mediamButton.dart';
 import '../Custom_Widget/responsiveHeigh_Width.dart';
 import 'package:dotted_border/dotted_border.dart';
 import "package:http/http.dart" as http;
-
-import '../Custom_Widget/textStyle.dart';
-import '../LoginPage/Otp/otpView.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class UserPeofileVew extends StatefulWidget {
   final String expertId;
@@ -34,8 +35,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
   File? _image;
   bool isLoading = true;
   File? pickedImage;
-  String _userId = '';
-  String _username = '';
+
   void imagePickerOption(BuildContext context) {
     showDialog(
       context: context,
@@ -56,7 +56,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        "Pic Image From",
+                        "Pick Image From",
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
@@ -103,7 +103,17 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
     try {
       final photo = await ImagePicker().pickImage(source: imageType);
       if (photo == null) return;
-      final tempImage = File(photo.path);
+
+      File tempImage = File(photo.path);
+
+      // Resize and compress the image
+      Uint8List? compressedImage = await FlutterImageCompress.compressWithFile(
+        tempImage.path,
+        quality: 80, // Adjust the quality as per your requirement
+      );
+
+      tempImage = await tempImage.writeAsBytes(compressedImage!);
+
       setState(() {
         pickedImage = tempImage;
       });
@@ -129,7 +139,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
       isLoading = true;
     });
     final response = await http.get(Uri.parse(
-        'http://armaan.pythonanywhere.com/api/Expert/${widget.expertId}'));
+        'https://support.homofixcompany.com/api/Expert/${widget.expertId}/'));
     if (response.statusCode == 200) {
       print(response.statusCode);
       setState(() {
@@ -175,7 +185,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
 
     final response = await http.patch(
       Uri.parse(
-          "https://armaan.pythonanywhere.com/api/Expert/${widget.expertId}/"),
+          "https://support.homofixcompany.com/api/Expert/${widget.expertId}/"),
       body: jsonEncode(activityData),
       headers: {
         "content-type": "application/json",
@@ -220,7 +230,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
 
     try {
       var uri = Uri.parse(
-          'http://armaan.pythonanywhere.com/api/Expert/${widget.expertId}/');
+          'https://support.homofixcompany.com/api/Expert/${widget.expertId}/');
       var headers = {
         'Content-Type': 'multipart/form-data',
       };
@@ -242,6 +252,10 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
 
       if (response.statusCode == 200) {
         print("Image Uploaded Successfully");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashBord()),
+        );
       } else {
         print("Failed to upload image");
       }
@@ -273,7 +287,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xff6956F0),
+        backgroundColor: Color(0xff002790),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -304,7 +318,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Color(0xff6956F0),
+                                  color: Color(0xff002790),
                                   width: 2,
                                 ),
                               ),
@@ -331,7 +345,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                               bottom: 5,
                               right: 0,
                               child: CircleAvatar(
-                                backgroundColor: Color(0xff6956F0),
+                                backgroundColor: Color(0xff002790),
                                 child: IconButton(
                                   onPressed: () {
                                     showDialog(
@@ -369,9 +383,8 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                               child: Text(
                                                 "UPLOAD",
                                                 style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xff1b213c),
-                                                ),
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xff002790)),
                                               ),
                                             ),
                                             TextButton(
@@ -382,7 +395,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                                 "CANCEL",
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
-                                                  color: Color(0xff1b213c),
+                                                  color: Color(0xff002790),
                                                 ),
                                               ),
                                             ),
@@ -401,6 +414,18 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                             )
                           ],
                         ),
+                      ),
+                      SizedBox(
+                        height:
+                            getMediaQueryHeight(context: context, value: 20),
+                      ),
+                      Text(
+                        "ID",
+                        style: customSmallTextStyle,
+                      ),
+                      Text(
+                        expertData['expert_id'],
+                        style: customTextStyle,
                       ),
                       SizedBox(
                         height:
@@ -447,45 +472,6 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                           ),
                         ],
                       ),
-                      // SizedBox(
-                      //   height: getMediaQueryHeight(context: context, value: 15),
-                      // ),
-                      // Column(
-                      //   crossAxisAlignment: CrossAxisAlignment.start,
-                      //   children: [
-                      //     Text("Email :"),
-                      //     SizedBox(
-                      //       height: getMediaQueryHeight(context: context, value: 10),
-                      //     ),
-                      //     Container(
-                      //       width: double.infinity,
-                      //       decoration: BoxDecoration(
-                      //           color: Colors.white,
-                      //           boxShadow: [
-                      //             BoxShadow(
-                      //               color: Colors.black.withOpacity(0.5),
-                      //               spreadRadius: 0.05,
-                      //               blurRadius: 3,
-                      //             )
-                      //           ],
-                      //           borderRadius: BorderRadius.circular(9)),
-                      //       child: Padding(
-                      //         padding: EdgeInsets.symmetric(horizontal: 10),
-                      //         child: TextFormField(
-                      //           readOnly: true,
-                      //           keyboardType: TextInputType.emailAddress,
-                      //           decoration: InputDecoration(
-                      //             // hintStyle: GoogleFonts.poppins(
-                      //             //     fontSize: 14,
-                      //             //     fontWeight: FontWeight.normal),
-                      //             border: InputBorder.none,
-                      //             hintText: "Kumarravi510@gmail.com",
-                      //           ),
-                      //         ),
-                      //       ),
-                      //     ),
-                      //   ],
-                      // ),
                       SizedBox(
                         height:
                             getMediaQueryHeight(context: context, value: 15),
@@ -883,7 +869,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                       //     fontSize: 14,
                                       //     fontWeight: FontWeight.normal),
                                       border: InputBorder.none,
-                                      hintText: "Your Area",
+                                      hintText: "",
                                     ),
                                   ),
                                 ),
@@ -925,7 +911,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                       //     fontSize: 14,
                                       //     fontWeight: FontWeight.normal),
                                       border: InputBorder.none,
-                                      hintText: "Highest Qualification",
+                                      hintText: "",
                                     ),
                                   ),
                                 ),
@@ -967,7 +953,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                       //     fontSize: 14,
                                       //     fontWeight: FontWeight.normal),
                                       border: InputBorder.none,
-                                      hintText: "Ashok Vihar",
+                                      hintText: "",
                                     ),
                                   ),
                                 ),
@@ -1009,7 +995,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                       //     fontSize: 14,
                                       //     fontWeight: FontWeight.normal),
                                       border: InputBorder.none,
-                                      hintText: "New Delhi",
+                                      hintText: "",
                                     ),
                                   ),
                                 ),
@@ -1051,7 +1037,7 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                                       //     fontSize: 14,
                                       //     fontWeight: FontWeight.normal),
                                       border: InputBorder.none,
-                                      hintText: "02/02/2023",
+                                      hintText: "",
                                     ),
                                   ),
                                 ),
@@ -1064,7 +1050,6 @@ class _UserPeofileVewState extends State<UserPeofileVew> {
                         height:
                             getMediaQueryHeight(context: context, value: 25),
                       ),
-
                       Visibility(
                         visible: _isButtonVisible,
                         child: CustomContainerMediamButton(

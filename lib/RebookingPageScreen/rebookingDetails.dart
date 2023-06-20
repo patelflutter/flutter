@@ -7,17 +7,16 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:homofix/Custom_Widget/responsiveHeigh_Width.dart';
 import 'package:homofix/Custom_Widget/textStyle.dart';
-import 'package:homofix/New_Booking/addAdomspart.dart';
+import 'package:homofix/RebookingPageScreen/rebooking.dart';
+import 'package:homofix/dashbord.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../New_Booking/adomsScreen.dart';
 
-class NewOrderList extends StatefulWidget {
+class NewRebookingDetailScreen extends StatefulWidget {
   final String expertId;
   final String city;
-  final double taxprice;
-  final double subprice;
-  final double totalprice;
-  final String orderDate;
   final String area;
   final int zipCode;
   final String state;
@@ -28,13 +27,9 @@ class NewOrderList extends StatefulWidget {
   final List<dynamic> productSet;
 
   final String status;
-  const NewOrderList({
+  const NewRebookingDetailScreen({
     Key? key,
     required this.productSet,
-    required this.orderDate,
-    required this.subprice,
-    required this.taxprice,
-    required this.totalprice,
     required this.area,
     required this.state,
     required this.city,
@@ -48,103 +43,161 @@ class NewOrderList extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<NewOrderList> createState() => _NewOrderListState();
+  State<NewRebookingDetailScreen> createState() =>
+      _NewRebookingDetailScreenState();
 }
 
-class _NewOrderListState extends State<NewOrderList>
+class _NewRebookingDetailScreenState extends State<NewRebookingDetailScreen>
     with SingleTickerProviderStateMixin {
   List<dynamic> orders = [];
-  bool isLoading = true;
+
   Color _buttonColor = Color(0xFFF7E2C2); // Default color for button
   String _selectedStatus = '--Select--';
-  List<String> _statusList = ['--Select--', 'Reached', 'Proceed'];
-
+  List<String> _statusList = ['--Select--', 'reached', 'proceed'];
   late TabController _tabController;
-
+  List<dynamic> dataList = [];
+  bool isLoading = true;
   List<Map<String, dynamic>> items = [];
-  List<dynamic> bookingProducts = [];
-
-  Future<void> fetchData() async {
-    setState(() {
-      isLoading = true; // Set isLoading to true before making the API call
-    });
-
-    try {
-      final response = await http.get(Uri.parse(
-          'https://support.homofixcompany.com/api/Task/?technician_id=${widget.expertId}'));
-
-      if (response.statusCode == 200) {
-        final parsedResponse = json.decode(response.body);
-
-        final List<Map<String, dynamic>> itemsList =
-            List<Map<String, dynamic>>.from(parsedResponse);
-
-        bookingProducts = itemsList
-            .where((item) => item['booking']['id'] == widget.orderId)
-            .map((item) => {'status': item['booking']['status']})
-            .where((bookingProduct) => bookingProduct['status'] != null)
-            .toList();
-
-        setState(() {}); // Trigger a rebuild to update the widget tree
-      }
-    } catch (error) {
-      // Handle error if any
-    } finally {
-      setState(() {
-        isLoading =
-            false; // Set isLoading to false after the API call is completed
-      });
-    }
-  }
-
-  //   for (var item in filteredItemsList) {
-  //     final taxAmount = item['tax_amount'];
-  //     print('Tax Amount: $taxAmount');
-  //   }
+  // Future<void> _getUserId() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final userId = prefs.getString('id') ?? '';
+  //   final username = prefs.getString('username') ?? '';
+  //   setState(() {
+  //     _userId = userId;
+  //     _username = username;
+  //     print("check :${_userId}");
+  //   });
   // }
-  Future<void> updateStatus(String _selectedStatus, int orderId) async {
-    final url = 'https://support.homofixcompany.com/api/Task/';
+
+  Future<void> updateStatus(String _selectedStatus, String expertId) async {
+    final url =
+        'https://support.homofixcompany.com/api/Rebooking/Status/Update';
     final dio = Dio();
 
     try {
-      final response = await dio.put(
+      final response = await dio.patch(
         url,
         data: {
-          'booking_id': orderId,
+          'technician_id': expertId,
           'status': _selectedStatus,
         },
       );
       if (response.statusCode == 200) {
         setState(() {});
+        Fluttertoast.showToast(
+          msg: "Order Completed",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        ).then((value) => Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => DashBord()),
+            (route) => false));
       } else {
         Fluttertoast.showToast(
-            msg: "Error updating status. Please try again later.",
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 1,
-            backgroundColor: Colors.red,
-            textColor: Colors.white,
-            fontSize: 16.0);
-      }
-    } catch (e) {
-      print('Error updating status: $e');
-      Fluttertoast.showToast(
           msg: "Error updating status. Please try again later.",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
           timeInSecForIosWeb: 1,
           backgroundColor: Colors.red,
           textColor: Colors.white,
-          fontSize: 16.0);
+          fontSize: 16.0,
+        );
+      }
+    } catch (e) {
+      print('Error updating status: $e');
+      Fluttertoast.showToast(
+        msg: "Error updating status. Please try again later.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+    }
+  }
+
+  // Future<void> updateStatus(
+  //   String _selectedStatus,
+  // ) async {
+  //   final url =
+  //       'https://support.homofixcompany.com/api/Rebooking/Status/Update';
+  //   final dio = Dio();
+
+  //   try {
+  //     final response = await dio.patch(
+  //       url,
+  //       data: {
+  //         'technician_id': widget.expertId,
+  //         'status': _selectedStatus,
+  //       },
+  //     );
+  //     if (response.statusCode == 200) {
+  //       setState(() {
+
+  //       });
+  //     } else {
+  //       Fluttertoast.showToast(
+  //         msg: "Error updating status. Please try again later.",
+  //         toastLength: Toast.LENGTH_SHORT,
+  //         gravity: ToastGravity.BOTTOM,
+  //         timeInSecForIosWeb: 1,
+  //         backgroundColor: Colors.red,
+  //         textColor: Colors.white,
+  //         fontSize: 16.0,
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error updating status: $e');
+  //     Fluttertoast.showToast(
+  //       msg: "Error updating status. Please try again later.",
+  //       toastLength: Toast.LENGTH_SHORT,
+  //       gravity: ToastGravity.BOTTOM,
+  //       timeInSecForIosWeb: 1,
+  //       backgroundColor: Colors.red,
+  //       textColor: Colors.white,
+  //       fontSize: 16.0,
+  //     );
+  //   }
+  // }
+  Future<void> fetchData() async {
+    setState(() {
+      isLoading = true; // Set isLoading to true before fetching the data
+    });
+
+    try {
+      final response = await http
+          .get(Uri.parse('https://support.homofixcompany.com/api/Addons-GET/'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final filteredData =
+            data.where((item) => item['booking_id'] == widget.orderId).toList();
+        setState(() {
+          dataList = filteredData;
+        });
+      } else {
+        print('Failed to fetch data');
+      }
+    } catch (error) {
+      print('Error fetching data: $error');
+    } finally {
+      setState(() {
+        isLoading = false; // Set isLoading to false after fetching the data
+      });
     }
   }
 
   @override
   void initState() {
-    super.initState();
-    //print(widget.productSet);
-    _tabController = TabController(length: 2, vsync: this);
     fetchData();
+    super.initState();
+
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -160,54 +213,46 @@ class _NewOrderListState extends State<NewOrderList>
       print("Permission not given");
       LocationPermission asked = await Geolocator.requestPermission();
     } else {
-      Position? currentPosition = await Geolocator.getCurrentPosition(
+      Position curruntPossition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
       );
+      setState(() {});
 
-      if (currentPosition != null) {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          currentPosition.latitude,
-          currentPosition.longitude,
-        );
-        Placemark placemark = placemarks.first;
-        String locationAddress =
-            '${placemark.name}, ${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.postalCode}, ${placemark.country}';
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        curruntPossition.latitude,
+        curruntPossition.longitude,
+      );
+      Placemark placemark = placemarks.first;
+      String locationaddress =
+          '${placemark.name}, ${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.postalCode}, ${placemark.country}';
 
-        Map<String, dynamic> data = {
-          "technician_id": widget.expertId.toString(),
-          "booking_id": widget.orderId.toString(),
-          "location": locationAddress.toString()
-        };
-        String jsonData = jsonEncode(data);
-        print(jsonData);
+      Map<String, dynamic> data = {
+        "technician_id": widget.expertId,
+        "booking_id": widget.orderId,
+        "location": locationaddress
+      };
+      String jsonData = jsonEncode(data);
+      print(jsonData);
 
-        final response = await http.post(
-          Uri.parse('https://support.homofixcompany.com/api/Location/'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonData,
-        );
+      final response = await http.post(
+        Uri.parse('https://support.homofixcompany.com/api/Location/'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonData,
+      );
 
-        if (response.statusCode == 201) {
-          print("Data added successfully");
-        } else {
-          print("Failed to add data");
-        }
+      if (response.statusCode == 200) {
+        print("Data added successfully");
       } else {
-        print("Failed to get current position");
+        print("Failed to add data");
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    String statusView = bookingProducts.isNotEmpty
-        ? bookingProducts[0]['status'] ?? 'N/A'
-        : 'N/A';
-
     List<dynamic> proSet = widget.productSet;
-
     switch (_selectedStatus) {
       case 'Assign':
         _buttonColor = Color(0xFFF7E2C2);
@@ -222,17 +267,14 @@ class _NewOrderListState extends State<NewOrderList>
     double totalPrice = 0.0;
 
     for (var product in widget.products) {
-      totalPrice += product['selling_price'];
+      totalPrice += product['price'];
     }
-    if (statusView == 'Reached') {
-      _statusList = ['Proceed'];
-      _selectedStatus = 'Proceed';
-    } else if (statusView == 'Proceed') {
-      _selectedStatus = 'Proceed';
+    if (widget.status == 'Assign') {
+      _statusList = ['Completed'];
+      _selectedStatus = 'Completed';
     } else {
-      _statusList = ['--Select--', 'Reached'];
+      _statusList = ['--Select--', 'Completed'];
     }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -258,8 +300,9 @@ class _NewOrderListState extends State<NewOrderList>
       body: isLoading
           ? Center(
               child: CircularProgressIndicator(
-              color: Colors.black,
-            ))
+                color: Colors.black,
+              ), // Show a circular progress indicator while loading
+            )
           : TabBarView(
               controller: _tabController,
               children: [
@@ -316,11 +359,8 @@ class _NewOrderListState extends State<NewOrderList>
                                         widget.area + ', ' + widget.city,
                                         style: customSmallTextStyle,
                                       ),
-                                      SizedBox(height: 6),
-                                      Text(
-                                        widget.orderDate,
-                                        style: customSmallTextStyle,
-                                      ),
+                                      // SizedBox(height: 4),
+                                      // Text(widget.city),
                                     ],
                                   ),
                                 ),
@@ -384,17 +424,15 @@ class _NewOrderListState extends State<NewOrderList>
                             child: Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 8),
-                              child: (statusView == 'Proceed')
+                              child: (widget.status == 'Completed')
                                   ? Text(
                                       widget.status,
                                       style: TextStyle(color: Colors.black),
                                     )
                                   : DropdownButton<String>(
                                       hint: Text("--Select--"),
-                                      icon: Icon(
-                                        FontAwesomeIcons.angleDown,
-                                        color: Colors.black,
-                                      ),
+                                      icon: Icon(FontAwesomeIcons.angleDown,
+                                          color: Colors.black),
                                       iconSize: 18,
                                       iconEnabledColor: Colors.black,
                                       isDense: true,
@@ -406,13 +444,7 @@ class _NewOrderListState extends State<NewOrderList>
                                       items: _statusList.map((String value) {
                                         return DropdownMenuItem<String>(
                                           value: value,
-                                          child: isLoading
-                                              ? Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                  color: Colors.black,
-                                                ))
-                                              : Text(value),
+                                          child: Text(value),
                                         );
                                       }).toList(),
                                       onChanged: (String? newValue) {
@@ -450,118 +482,162 @@ class _NewOrderListState extends State<NewOrderList>
                       ),
                     ),
                     Expanded(
-                      child: SingleChildScrollView(
-                        child: ListView.separated(
-                          scrollDirection: Axis.vertical,
-                          physics: NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          itemCount: widget.products.length,
-                          itemBuilder: (context, index) {
+                      child: ListView.builder(
+                        scrollDirection: Axis.vertical,
+                        shrinkWrap: true,
+                        itemCount: widget.products.length + dataList.length,
+                        itemBuilder: (context, index) {
+                          if (index < widget.products.length) {
                             final product = widget.products[index];
                             int qnt = proSet[index]['quantity'];
                             final productName = product['name'];
-                            final productId = product['id'];
                             final productTitle = product['product_title'];
                             final productPrice = product['selling_price'] * qnt;
-
-                            final productDiscription = product['description'];
                             final productImage = product['product_pic'];
+                            final productQnt = product['quantity'];
+                            return Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Card(
+                                elevation: 0,
+                                child: Container(
+                                  child: Column(
+                                    children: [
+                                      SizedBox(
+                                        height: getMediaQueryHeight(
+                                            context: context, value: 10),
+                                      ),
+                                      ListTile(
+                                        trailing: Wrap(
+                                          direction: Axis.vertical,
+                                          children: [
+                                            Text(
+                                              NumberFormat.currency(
+                                                locale: 'en_IN',
+                                                symbol: '₹',
+                                                decimalDigits: 0,
+                                              ).format(productPrice),
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xff002790),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: 5,
+                                            ),
+                                            Text(
+                                              "QTY:$qnt",
+                                              style: TextStyle(
+                                                color: Color(0xff002790),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ],
+                                        ),
+                                        leading: productImage != null
+                                            ? Image(
+                                                image: NetworkImage(
+                                                    '$productImage'),
+                                                height: 80,
+                                                width: 60,
+                                              )
+                                            : Image.asset(
+                                                'assets/undraw_two_factor_authentication_namy.png',
+                                                height: 80,
+                                                width: 60,
+                                              ),
+                                        title: Text(
+                                          "$productName",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xff002790),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "$productTitle",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Color(0xff002790),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          } else {
+                            final item =
+                                dataList[index - widget.products.length];
 
                             return Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Card(
                                 elevation: 0,
-                                //  margin: EdgeInsets.zero,
-                                child: Container(
-                                    child: Column(
-                                  children: [
-                                    SizedBox(
-                                      height: getMediaQueryHeight(
-                                          context: context, value: 10),
+                                child: ListTile(
+                                  leading: Image.asset(
+                                    'assets/undraw_two_factor_authentication_namy.png',
+                                    height: 80,
+                                    width: 60,
+                                  ),
+                                  title: Text(
+                                    item['spare_parts_id']['spare_part']
+                                        .toString(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xff002790),
                                     ),
-                                    ListTile(
-                                      trailing: Wrap(
-                                        direction: Axis.vertical,
-                                        children: [
-                                          Text(
-                                            NumberFormat.currency(
-                                              locale: 'en_IN',
-                                              symbol: '₹',
-                                              decimalDigits: 0,
-                                            ).format(
-                                              productPrice,
-                                            ),
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(0xff002790)),
-                                          ),
-                                          SizedBox(
-                                            width: 8,
-                                          ),
-                                          Text(
-                                            "QTY: $qnt",
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(0xff002790)),
-                                          )
-                                        ],
-                                      ),
-                                      leading: productImage != null
-                                          ? Image(
-                                              image:
-                                                  NetworkImage('$productImage'),
-                                              height: 80,
-                                              width: 60,
-                                            )
-                                          : Image.asset(
-                                              'assets/undraw_two_factor_authentication_namy.png', // replace with your default image path
-                                              height: 80,
-                                              width: 60,
-                                            ),
-                                      title: Text(
-                                        "$productName",
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                  subtitle: Text(
+                                    item['spare_parts_id']['description']
+                                        .toString(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xff002790),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                  ),
+                                  trailing: Wrap(
+                                    direction: Axis.vertical,
+                                    children: [
+                                      Text(
+                                        '\u20B9 ${item['spare_parts_id']['price'].toString()}',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xff1b213c),
+                                          color: Color(0xff002790),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height: 2,
+                                      ),
+                                      Text(
+                                        "QTY:${item['quantity'].toString()}",
+                                        style: TextStyle(
+                                          color: Color(0xff002790),
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                         maxLines: 1,
                                       ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "$productTitle",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              color: Color(0xff1b213c),
-                                            ),
-                                          ),
-                                          // Html(data: "$productDiscription"),
-
-                                          // Text(
-                                          //   "$productDiscription",
-                                          //   maxLines: 3,
-                                          //   overflow: TextOverflow.ellipsis,
-                                          // ),
-                                        ],
-                                      ),
-                                    )
-
-                                    //Text("$productDiscription")
-                                  ],
-                                )),
+                                    ],
+                                  ),
+                                  // Customize the ListTile according to your data structure
+                                  // You can access other fields like item['field_name'] as needed
+                                ),
                               ),
                             );
-                          },
-                          separatorBuilder: (BuildContext context, int index) {
-                            return SizedBox(
-                              height: getMediaQueryHeight(
-                                  context: context, value: 10),
-                            );
-                          },
-                        ),
+                          }
+                        },
                       ),
                     ),
                   ],
@@ -641,6 +717,27 @@ class _NewOrderListState extends State<NewOrderList>
                         height:
                             getMediaQueryHeight(context: context, value: 10),
                       ),
+                      ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => AdomsItemScreen(
+                                          zipCode: widget.zipCode,
+                                          status: widget.status,
+                                          state: widget.state,
+                                          products: widget.products,
+                                          productSet: widget.productSet,
+                                          expertname: widget.expertname,
+                                          orderId: widget.orderId,
+                                          area: widget.area,
+                                          city: widget.city,
+                                          customerdetails:
+                                              widget.customerdetails,
+                                          expertId: widget.expertId,
+                                        )));
+                          },
+                          child: Text("Check Invoice"))
                     ],
                   ),
                 ),
@@ -659,61 +756,45 @@ class _NewOrderListState extends State<NewOrderList>
                 textColor: Colors.white,
                 fontSize: 16.0,
               );
+            } else if (_selectedStatus == 'Reached') {
+              Fluttertoast.showToast(
+                msg: 'Cannot submit while in Reached',
+                toastLength: Toast.LENGTH_SHORT,
+                gravity: ToastGravity.BOTTOM,
+                timeInSecForIosWeb: 1,
+                backgroundColor: Colors.red,
+                textColor: Colors.white,
+                fontSize: 16.0,
+              );
+              await updateStatus(_selectedStatus, widget.expertId).then((_) {
+                if (_selectedStatus == "Completed") {
+                  setState(() {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RebookingListView(
+                          expertId: widget.expertId,
+                          expertname: widget.expertname,
+                        ),
+                      ),
+                    );
+                  });
+                  getCurruntPosition();
+                }
+              });
             } else {
-              if (_selectedStatus == 'Reached') {
-                Fluttertoast.showToast(
-                  msg: 'Successfully Submitted',
-                  toastLength: Toast.LENGTH_SHORT,
-                  gravity: ToastGravity.BOTTOM,
-                  timeInSecForIosWeb: 1,
-                  backgroundColor: Colors.green,
-                  textColor: Colors.white,
-                  fontSize: 16.0,
-                );
-
-                await updateStatus(_selectedStatus, widget.orderId);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NewOrderList(
-                      orderDate: widget.orderDate,
-                      taxprice: widget.taxprice,
-                      totalprice: widget.totalprice,
-                      subprice: widget.subprice,
-                      status: widget.status,
-                      expertId: widget.expertId,
-                      expertname: widget.expertname,
-                      area: widget.area,
-                      city: widget.city,
-                      customerdetails: widget.customerdetails,
-                      orderId: widget.orderId,
-                      productSet: widget.productSet,
-                      products: widget.products,
-                      state: widget.state,
-                      zipCode: widget.zipCode,
-                    ),
-                  ),
-                );
-
-                getCurruntPosition();
-              } else {
-                await updateStatus(_selectedStatus, widget.orderId);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddAdomsPartScreen(
-                      products: widget.products,
-                      taxprice: widget.taxprice.toString(),
-                      totalprice: widget.totalprice.toString(),
-                      subprice: widget.subprice.toString(),
-                      orderId: widget.orderId,
-                      bookingStatus: widget.status,
-                      productSet: widget.productSet,
-                      expertId: widget.expertId,
-                    ),
-                  ),
-                );
-              }
+              await updateStatus(_selectedStatus, widget.expertId);
+              // Navigator.pushReplacement(
+              //   context,
+              //   MaterialPageRoute(
+              //     builder: (context) => AddAdomsPartScreen(
+              //       products: widget.products,
+              //       orderId: widget.orderId,
+              //       bookingStatus: widget.status,
+              //       productSet: widget.productSet,
+              //     ),
+              //   ),
+              // );
             }
           },
           child: Container(

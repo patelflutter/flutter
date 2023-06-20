@@ -1,17 +1,20 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
 import 'package:homofix/Custom_Widget/textStyle.dart';
-
+import 'package:homofix/dashbord.dart';
+import 'package:intl/intl.dart';
 import '../Custom_Widget/custom_mediamButton.dart';
 
 class CompleteWalletScreen extends StatefulWidget {
   final String acNo;
   final String bankHolderName;
   final String amounts;
+  final String technicianId;
   const CompleteWalletScreen(
       {Key? key,
       required this.acNo,
+      required this.technicianId,
       required this.bankHolderName,
       required this.amounts})
       : super(key: key);
@@ -21,11 +24,41 @@ class CompleteWalletScreen extends StatefulWidget {
 }
 
 class _CompleteWalletScreenState extends State<CompleteWalletScreen> {
+  void _handlePaymentSuccess() async {
+    final url = 'https://armaan.pythonanywhere.com/api/Withdraw/Request/Post/';
+    final dio = Dio();
+    dio.options.headers['Content-Type'] = 'application/json';
+    final data = {
+      'amount': widget.amounts,
+      'technician_id': widget.technicianId,
+    };
+    print('--------------Hello--------');
+
+    try {
+      final response = await dio.post(url, data: data);
+      if (response.statusCode == 200) {
+        // Payment data successfully posted to the API
+        debugPrint('Payment data successfully posted to the API');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => DashBord()),
+          (route) => false,
+        );
+      } else {
+        debugPrint(
+            'Error posting payment data to the API: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Exception while posting payment data to the API
+      debugPrint('Exception while posting payment data to the API: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xff6956F0),
+        backgroundColor: Color(0xff002790),
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
@@ -89,7 +122,11 @@ class _CompleteWalletScreenState extends State<CompleteWalletScreen> {
                         style: customSmallTextStyleNoBold,
                       ),
                       trailing: Text(
-                        widget.amounts,
+                        NumberFormat.currency(
+                          locale: 'en_IN',
+                          symbol: '₹',
+                          decimalDigits: 2,
+                        ).format(double.parse(widget.amounts)).toString(),
                         style: customSmallTextStyleNoBold,
                       ),
                     ),
@@ -99,7 +136,11 @@ class _CompleteWalletScreenState extends State<CompleteWalletScreen> {
                         style: customSmallTextStyleNoBold,
                       ),
                       trailing: Text(
-                        "0",
+                        NumberFormat.currency(
+                          locale: 'en_IN',
+                          symbol: '₹',
+                          decimalDigits: 2,
+                        ).format(0).toString(),
                         style: customSmallTextStyleNoBold,
                       ),
                     ),
@@ -109,13 +150,17 @@ class _CompleteWalletScreenState extends State<CompleteWalletScreen> {
                         style: customSmallTextStyle,
                       ),
                       trailing: Text(
-                        widget.amounts,
+                        NumberFormat.currency(
+                          locale: 'en_IN',
+                          symbol: '₹',
+                          decimalDigits: 2,
+                        ).format(double.parse(widget.amounts)).toString(),
                         style: customSmallTextStyle,
                       ),
                     ),
                     Container(
                       height: 8,
-                      color: Color(0xff6956F0),
+                      color: Color(0xff002790),
                     ),
                   ],
                 ),
@@ -124,10 +169,11 @@ class _CompleteWalletScreenState extends State<CompleteWalletScreen> {
                 height: 25,
               ),
               CustomContainerMediamButton(
-                  buttonText: 'Proceed',
-                  onTap: () {
-                    //  await postData();
-                  }),
+                buttonText: 'Proceed',
+                onTap: () async {
+                  _handlePaymentSuccess();
+                },
+              ),
             ],
           ),
         ),

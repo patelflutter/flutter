@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:homofix/Custom_Widget/responsiveHeigh_Width.dart';
 import 'package:homofix/Custom_Widget/textStyle.dart';
-import 'package:homofix/Joining/joinScreen.dart';
 import 'package:homofix/User_Profile/user_profile.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +17,11 @@ import 'New_Booking/CompleteBooking.dart';
 import 'package:animated_toggle_switch/animated_toggle_switch.dart';
 import 'package:http/http.dart' as http;
 import 'New_Booking/productScreenView.dart';
+import 'RebookingPageScreen/rebooking.dart';
 import 'Wallet/walletScreenView.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:math' as math;
 
 class DashBord extends StatefulWidget {
   // final int id;
@@ -31,7 +35,7 @@ class DashBord extends StatefulWidget {
 
 class _DashBordState extends State<DashBord> {
   Map<String, dynamic> expertData = {};
-
+  bool isRotated = false;
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -42,6 +46,7 @@ class _DashBordState extends State<DashBord> {
   }
 
   List<Map<String, dynamic>> items = [];
+
   bool positive = false;
   bool loading = false;
   var isDeviceConnected = false;
@@ -50,24 +55,20 @@ class _DashBordState extends State<DashBord> {
   String _userId = '';
   String _username = '';
   String name = '';
+  String expertGmail = '';
   String imageUrl = '';
+  int? bookingComplete;
+  int? newBookingCount;
+  int? rebookingCount;
+  Timer? timer;
+  bool isButtonClicked = false;
+
+  // int completedBookingsCount = 0;
   Future<void> _getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('id') ?? '';
     final username = prefs.getString('username') ?? '';
 
-    // if (username.isEmpty || userId.isEmpty) {
-    //   // If username or userId is empty, clear the values and navigate to login page
-    //   await prefs.remove('id');
-    //   await prefs.remove('username');
-    //   Navigator.pushReplacement(
-    //     context,
-    //     MaterialPageRoute(builder: (context) => Login()),
-    //   );
-    //   return;
-    // }
-
-    // Otherwise, set the state variables
     setState(() {
       _userId = userId;
       _username = username;
@@ -77,14 +78,36 @@ class _DashBordState extends State<DashBord> {
 
   Future<void> fetchDatas() async {
     final response = await http.get(
-        Uri.parse('https://armaan.pythonanywhere.com/api/Expert/$_userId/'));
+        Uri.parse('https://support.homofixcompany.com/api/Expert/$_userId/'));
     if (response.statusCode == 200) {
       final parsedResponse = json.decode(response.body);
+      final admin = parsedResponse['admin'];
+      final fullName = admin != null ? admin['first_name'].toString() : "";
+      final email = admin != null ? admin['email'].toString() : "";
+
       setState(() {
-        name = parsedResponse['mobile'].toString();
+        name = fullName;
+        expertGmail = email;
         imageUrl = parsedResponse['profile_pic'].toString();
-        fetchDatas();
       });
+    } else {
+      throw Exception('Failed to load data');
+    }
+  }
+
+  Future<void> fetchDataCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idS = prefs.getString('id');
+    final response = await http.get(Uri.parse(
+        'https://support.homofixcompany.com/api/Task/Counting/Get/?technician_id=$idS'));
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      bookingComplete = jsonData['Booking_Completed'];
+      newBookingCount = jsonData['new_booking_count'];
+      rebookingCount = jsonData['rebooking_count'];
+
+      // Do something with the retrieved data
     } else {
       throw Exception('Failed to load data');
     }
@@ -92,7 +115,7 @@ class _DashBordState extends State<DashBord> {
 
   Future<void> fetchData() async {
     final response = await http.get(Uri.parse(
-        'https://armaan.pythonanywhere.com/api/Task/?technician=$_userId'));
+        'https://support.homofixcompany.com/api/Task/?technician=$_userId'));
     if (response.statusCode == 200) {
       print(response.statusCode);
       final parsedResponse = json.decode(response.body);
@@ -101,7 +124,8 @@ class _DashBordState extends State<DashBord> {
       setState(() {
         items = itemsList
             .map<Map<String, dynamic>>((item) => item['booking'])
-            .where((booking) => booking['status'] != 'completed')
+            .where((booking) =>
+                booking['status'] != 'Completed' && booking['id'] == '$_userId')
             .toList();
 
         // sort items by order id
@@ -110,11 +134,13 @@ class _DashBordState extends State<DashBord> {
             a['booking']?['order_id']
                 ?.compareTo(b['booking']?['order_id'] ?? 0) ??
             0);
+        //      completedBookingsCount = itemsList.where((item) =>
+        // item['booking'] != null &&
+        // item['booking']['status'] == 'Completed').length;
       });
-      print(parsedResponse);
 
-      int totalBooking = items.length;
-      print('Total Booking: $totalBooking');
+      //  count bookings with status 'completed'
+
     } else {
       throw Exception('Failed to load data');
     }
@@ -122,40 +148,18 @@ class _DashBordState extends State<DashBord> {
 
   @override
   void initState() {
-    // AwesomeNotifications().initialize(
-    //   // Use default icon for the notification icon
-    //   'resource://drawable/res_app_icon',
-    //   [
-    //     NotificationChannel(
-    //       channelKey: 'basic_channel',
-    //       channelName: 'Basic notifications',
-    //       channelDescription: 'Notification channel for basic tests',
-    //       defaultColor: Color(0xFF9D50DD),
-    //       ledColor: Colors.white,
-    //       playSound: true,
-    //       enableLights: true,
-    //       enableVibration: true,
-    //     ),
-    //   ],
-    // );
-
-    // Check if the app has permission to send notifications
-    // AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    //   if (!isAllowed) {
-    //     // Request permission to send notifications if not allowed
-    //     AwesomeNotifications().requestPermissionToSendNotifications();
-    //   }
-    // });
-
-    // AwesomeNotifications().isNotificationAllowed().then((isAllowed) {
-    //   if (!isAllowed) {
-    //     AwesomeNotifications().requestPermissionToSendNotifications();
-    //   }
-    // });
     getConnectivity();
     super.initState();
+
+    fetchDataCount();
+
     _getUserId().then((value) => fetchDatas());
     fetchData();
+
+    SharedPreferences.getInstance().then((prefs) {
+      bool savedPositive = prefs.getBool('positive') ?? false;
+      setState(() => positive = savedPositive);
+    });
   }
 
   getConnectivity() {
@@ -170,6 +174,52 @@ class _DashBordState extends State<DashBord> {
         });
       }
     });
+  }
+
+  Future<void> getCurruntPosition() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      print("Permission not given");
+      LocationPermission asked = await Geolocator.requestPermission();
+    } else {
+      Position curruntPossition = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+      );
+      setState(() {});
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        curruntPossition.latitude,
+        curruntPossition.longitude,
+      );
+      Placemark placemark = placemarks.first;
+      String locationaddress =
+          '${placemark.name}, ${placemark.street}, ${placemark.subLocality}, ${placemark.locality}, ${placemark.administrativeArea}, ${placemark.postalCode}, ${placemark.country}';
+
+      Map<String, dynamic> data = {
+        "technician_id": _userId,
+        "location": locationaddress,
+      };
+      String jsonData = jsonEncode(data);
+      print(jsonData);
+
+      final response = await http.put(
+        Uri.parse(
+            'https://support.homofixcompany.com/api/ExpertAllLocation/$_userId/'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonData,
+      );
+
+      if (response.statusCode == 200) {
+        print("Data added successfully");
+      } else if (response.statusCode == 201) {
+        print("Data added successfully");
+      } else {
+        print("Failed to add data");
+      }
+    }
   }
 
   @override
@@ -207,16 +257,16 @@ class _DashBordState extends State<DashBord> {
               padding: EdgeInsets.zero,
               children: <Widget>[
                 UserAccountsDrawerHeader(
-                    decoration: BoxDecoration(color: Color(0xff6956F0)),
+                    decoration: BoxDecoration(color: Color(0xff002790)),
                     accountName: Text(
-                      _username.toUpperCase(),
+                      name.toUpperCase(),
                       style: TextStyle(
                           fontSize: 18,
                           color: Colors.white,
                           fontWeight: FontWeight.bold),
                     ),
                     accountEmail: Text(
-                      "abhishekm977@gmail.com",
+                      expertGmail.toString(),
                       style: TextStyle(
                           fontSize: 14,
                           color: Colors.white,
@@ -237,37 +287,9 @@ class _DashBordState extends State<DashBord> {
                 ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Color(0xFFE6E3F7),
-                    child: Icon(
-                      Icons.home,
-                      color: Color(0xff6956F0),
-                    ),
+                    child: Icon(Icons.person, color: Color(0xff002790)),
                   ),
-                  title: Text("Home",
-                      // 'Name: $name',
-                      style: TextStyle(
-                          color: Color(0xff1b213c),
-                          fontWeight: FontWeight.bold)),
-                  onTap: () {
-                    // Navigate to home screen
-                  },
-                  trailing: CircleAvatar(
-                    radius: 12,
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                    ),
-                    backgroundColor: Color.fromARGB(255, 224, 223, 223),
-                  ),
-                ),
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Color(0xFFE6E3F7),
-                    child: Icon(
-                      Icons.person,
-                      color: Color(0xff6956F0),
-                    ),
-                  ),
-                  title: Text('Profile',
+                  title: Text('Profile ',
                       style: TextStyle(
                           color: Color(0xff1b213c),
                           fontWeight: FontWeight.bold)),
@@ -285,37 +307,9 @@ class _DashBordState extends State<DashBord> {
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
                     ),
-                    backgroundColor: Color.fromARGB(255, 224, 223, 223),
-                  ),
-                ),
-                ListTile(
-                  leading: CircleAvatar(
                     backgroundColor: Color(0xFFE6E3F7),
-                    child: Icon(
-                      FontAwesomeIcons.userGraduate,
-                      color: Color(0xff6956F0),
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    'Career',
-                    style: TextStyle(
-                        color: Color(0xff1b213c), fontWeight: FontWeight.bold),
-                  ),
-                  onTap: () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => MyJoin()));
-                  },
-                  trailing: CircleAvatar(
-                    radius: 12,
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 14,
-                    ),
-                    backgroundColor: Color.fromARGB(255, 224, 223, 223),
                   ),
                 ),
-                // Text('Mobile: ${_myData.mobile}'),
                 ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Color(0xFFE6E3F7),
@@ -338,7 +332,7 @@ class _DashBordState extends State<DashBord> {
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
                     ),
-                    backgroundColor: Color.fromARGB(255, 224, 223, 223),
+                    backgroundColor: Color(0xFFE6E3F7),
                   ),
                 ),
               ],
@@ -371,7 +365,8 @@ class _DashBordState extends State<DashBord> {
                 flexibleSpace: Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/dashbordpic.jpg'),
+                      image: AssetImage(
+                          'assets/WhatsApp Image 2023-04-15 at 10.50.08 AM.jpeg'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -379,10 +374,6 @@ class _DashBordState extends State<DashBord> {
                     child: FlexibleSpaceBar(
                       background: Column(
                         children: [
-                          // Image.asset(
-                          //   "assets/dashbordpic.jpg",
-                          //   height: 250,
-                          // )
                           SizedBox(
                             height: getMediaQueryHeight(
                                 context: context, value: 85),
@@ -394,33 +385,25 @@ class _DashBordState extends State<DashBord> {
                                   topLeft: Radius.circular(20),
                                   topRight: Radius.circular(20),
                                 ),
-                                // gradient: LinearGradient(
-                                //   begin: Alignment.centerLeft,
-                                //   end: Alignment.centerRight,
-                                //   // colors: [
-                                //   //   Color(0xff6a52ee), // Start color
-                                //   //   Color(0xFF66b52ef), // End color
-                                //   // ],
-                                // ),
                               ),
                               child: Stack(
                                 children: [
                                   Column(
                                     children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: MyCustomCard(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: MyCustomCard(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  if (newBookingCount != null)
                                                     Text(
-                                                      '${items.length}',
+                                                      "$newBookingCount"
+                                                          .toString(),
                                                       style: TextStyle(
                                                           fontSize: 22,
                                                           fontWeight:
@@ -431,31 +414,47 @@ class _DashBordState extends State<DashBord> {
                                                           //     )
                                                           ),
                                                     ),
-                                                    Text(
-                                                      "Booking",
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.black
-                                                          // color:
-                                                          //     Color(0xfff9ecff),
-                                                          ),
-                                                    )
-                                                  ],
-                                                ),
+                                                  Column(
+                                                    children: [
+                                                      Text(
+                                                        "New",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                      Text(
+                                                        "Booking",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
                                               ),
                                             ),
-                                            Expanded(
-                                              child: MyCustomCard(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
+                                          ),
+                                          Expanded(
+                                            child: MyCustomCard(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  if (rebookingCount != null)
                                                     Text(
-                                                      "10",
+                                                      "$rebookingCount",
                                                       style: TextStyle(
                                                           fontSize: 22,
                                                           fontWeight:
@@ -465,31 +464,47 @@ class _DashBordState extends State<DashBord> {
                                                           //     Color(0xfff9ecff),
                                                           ),
                                                     ),
-                                                    Text(
-                                                      "Discount",
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.black
-                                                          // color:
-                                                          //     Color(0xfff9ecff),
-                                                          ),
-                                                    )
-                                                  ],
-                                                ),
+                                                  Column(
+                                                    children: [
+                                                      Text(
+                                                        "New",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                      Text(
+                                                        "Rebooking",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
                                               ),
                                             ),
-                                            Expanded(
-                                              child: MyCustomCard(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: const [
+                                          ),
+                                          Expanded(
+                                            child: MyCustomCard(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  if (bookingComplete != null)
                                                     Text(
-                                                      "10",
+                                                      "$bookingComplete",
                                                       style: TextStyle(
                                                           fontSize: 22,
                                                           fontWeight:
@@ -499,24 +514,67 @@ class _DashBordState extends State<DashBord> {
                                                           //     Color(0xfff9ecff),
                                                           ),
                                                     ),
-                                                    Text(
-                                                      "Discount",
-                                                      style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: Colors.black
-                                                          // color:
-                                                          //     Color(0xfff9ecff),
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                  Column(
+                                                    children: [
+                                                      Text(
+                                                        "Complete",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                      Text(
+                                                        "Booking",
+                                                        style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: Colors.black
+                                                            // color:
+                                                            //     Color(0xfff9ecff),
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
+                                      IconButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            fetchDataCount();
+
+                                            isRotated =
+                                                !isRotated; // Toggle the rotation state
+                                          });
+                                        },
+                                        icon: AnimatedBuilder(
+                                          animation: AlwaysStoppedAnimation<
+                                                  double>(
+                                              isRotated
+                                                  ? 0.25
+                                                  : 0), // Define the rotation animation
+                                          builder: (BuildContext context,
+                                              Widget? child) {
+                                            return Transform.rotate(
+                                              angle: isRotated
+                                                  ? math.pi * 2 * 0.25
+                                                  : 0, // Rotate the icon by 90 degrees (quarter-turn)
+                                              child: Icon(FontAwesomeIcons
+                                                  .arrowsRotate),
+                                            );
+                                          },
+                                        ),
+                                        color: Colors.white,
+                                        iconSize: 22,
+                                      )
                                     ],
                                   ),
                                 ],
@@ -549,18 +607,23 @@ class _DashBordState extends State<DashBord> {
                       children: [
                         Padding(
                           padding: EdgeInsets.all(10.0),
-                          child: imageUrl.isEmpty
-                              ? CircleAvatar(
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                        color: Colors.black),
-                                  ),
-                                )
-                              : CircleAvatar(
-                                  radius: 22,
-                                  key: ValueKey(imageUrl),
-                                  backgroundImage: NetworkImage(imageUrl),
-                                ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white,
+                                width: 1,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage: imageUrl.isNotEmpty
+                                  ? NetworkImage(imageUrl)
+                                      as ImageProvider<Object>?
+                                  : AssetImage('assets/logolight.png'),
+                            ),
+                          ),
                         ),
                         Positioned(
                           right: 0,
@@ -581,7 +644,11 @@ class _DashBordState extends State<DashBord> {
                   Spacer(),
                   Padding(
                     padding: const EdgeInsets.all(10.0),
-                    child: Image.asset('assets/homofixlogo.jpg'),
+                    child: SizedBox(
+                      //  width: getMediaQueryWidth(context: context, value: 70),
+                      child:
+                          Image.asset('assets/logolight.png', fit: BoxFit.fill),
+                    ),
                   ),
                   Spacer(),
                   Padding(
@@ -620,6 +687,14 @@ class _DashBordState extends State<DashBord> {
                         height:
                             getMediaQueryHeight(context: context, value: 15),
                       ),
+                      // ElevatedButton(
+                      //   onPressed: () {
+                      //     setState(() {
+                      //       isButtonClicked = true; // Update the state variable
+                      //     });
+                      //   },
+                      //   child: Text('Update UI'),
+                      // ),
                       // Text(
                       //   'Logged in as user ID: $_userId!',
                       //   style: TextStyle(fontSize: 24.0),
@@ -651,9 +726,34 @@ class _DashBordState extends State<DashBord> {
                             offset: Offset(0, 1.5),
                           ),
                         ],
-                        onChanged: (b) {
+                        onChanged: (b) async {
                           setState(() => positive = b);
-                          return Future.delayed(Duration(seconds: 1));
+                          final apiUrl =
+                              'https://support.homofixcompany.com/api/OnlineOffline/$_userId/';
+                          final response = await http.put(
+                            Uri.parse(apiUrl),
+                            body: {
+                              'online': b.toString(),
+                              'technician_id': '$_userId',
+                            },
+                          );
+                          if (response.statusCode == 200) {
+                            final responseBody = json.decode(response.body);
+                            final data = responseBody['data'];
+                            final online = data['online'] as bool;
+                            setState(() => positive = online);
+                            //   getCurruntPosition();
+                            Fluttertoast.showToast(
+                                msg:
+                                    'You are now ${online ? 'online' : 'offline'}');
+                            print('Online status updated');
+                            SharedPreferences prefs =
+                                await SharedPreferences.getInstance();
+                            await prefs.setBool('positive', positive);
+                          } else {
+                            print('Failed to update online status');
+                          }
+                          // return Future.delayed(Duration(seconds: 25));
                         },
                         colorBuilder: (b) => b ? Colors.green : Colors.red,
                         iconBuilder: (value) => value
@@ -708,12 +808,22 @@ class _DashBordState extends State<DashBord> {
                               text: 'New Booking',
                               imagePath: 'assets/order.png',
                               onTap: () {
-                                Navigator.push(
+                                if (!positive) {
+                                  Fluttertoast.showToast(
+                                    msg:
+                                        'You are currently working mode off. Please go working mode of to access this feature.',
+                                  );
+                                } else {
+                                  Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (context) => ProductScreenView(
-                                            expertId: _userId,
-                                            expertname: _username)));
+                                      builder: (context) => ProductScreenView(
+                                        expertId: _userId,
+                                        expertname: _username,
+                                      ),
+                                    ),
+                                  );
+                                }
                               },
                             ),
                           ),
@@ -725,7 +835,9 @@ class _DashBordState extends State<DashBord> {
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (context) => WalletScreen()));
+                                        builder: (context) => WalletScreen(
+                                              expertId: _userId,
+                                            )));
                               },
                             ),
                           )
@@ -739,14 +851,27 @@ class _DashBordState extends State<DashBord> {
                         children: [
                           Expanded(
                             child: CustomWidget(
-                                text: 'Rebooking List',
-                                imagePath: 'assets/recent.png',
-                                onTap: () {
-                                  // Navigator.push(
-                                  //     context,
-                                  //     MaterialPageRoute(
-                                  //         builder: (context) => HomeView()));
-                                }),
+                              text: 'Rebooking List',
+                              imagePath: 'assets/recent.png',
+                              onTap: () {
+                                if (!positive) {
+                                  Fluttertoast.showToast(
+                                    msg:
+                                        'You are currently working mode off. Please go working mode of to access this feature.',
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RebookingListView(
+                                        expertId: _userId,
+                                        expertname: _username,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           ),
                           Expanded(
                             child: CustomWidget(
